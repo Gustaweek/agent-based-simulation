@@ -90,6 +90,9 @@ class WorkerActor[ConfigType <: XinukConfig](
         consequences.foreach(applyUpdate)
         consequencesStash.remove(currentIteration)
 
+        val killings: Seq[Cell] = worldShard.localCellIds.map(worldShard.cells(_)).toSeq
+        killings.foreach(applyKilling)
+
         val signalUpdates = calculateSignalUpdates()
         distributeSignal(currentIteration, signalUpdates)
       }
@@ -161,6 +164,12 @@ class WorkerActor[ConfigType <: XinukConfig](
     val action = stateUpdate.update
     val (result, metrics) = planResolver.applyUpdate(target.state.contents, action)
     target.updateContents(result)
+    iterationMetrics += metrics
+  }
+
+  private def applyKilling(cell: Cell): Unit = {
+    val (result, metrics) = planResolver.resolveKilling(cell.state.contents)
+    cell.updateContents(result)
     iterationMetrics += metrics
   }
 

@@ -7,4 +7,6 @@ trait PlanResolver[Config <: XinukConfig] {
   def isUpdateValid(contents: CellContents, update: StateUpdate)(implicit config: Config): Boolean
 
   def applyUpdate(contents: CellContents, update: StateUpdate)(implicit config: Config): (CellContents, Metrics)
+
+  def resolveKilling(contents: CellContents)(implicit config: Config): (CellContents, Metrics)
 }
