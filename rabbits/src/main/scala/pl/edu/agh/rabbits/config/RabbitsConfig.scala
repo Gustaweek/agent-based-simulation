@@ -38,14 +38,21 @@ final case class RabbitsConfig(
 
                                 spawnChance: Double,
                                 rabbitSpawnChance: Double,
+                                wolfSpawnChance: Double,
 
                                 rabbitInitialSignal: Signal,
+                                wolfInitialSignal: Signal,
                                 lettuceInitialSignal: Signal,
 
                                 rabbitStartEnergy: Double,
                                 rabbitReproductionCost: Double,
                                 rabbitReproductionThreshold: Double,
                                 rabbitLifeActivityCost: Double,
+
+                                wolfStartEnergy: Double,
+                                wolfReproductionCost: Double,
+                                wolfReproductionThreshold: Double,
+                                wolfLifeActivityCost: Double,
 
                                 lettuceEnergeticCapacity: Double,
                                 lettuceReproductionFrequency: Int,

@@ -77,5 +77,5 @@ class Simulation[ConfigType <: XinukConfig : ValueReader](
     }
   }
 
-  private def logHeader: String = s"worker:${metricHeaders.mkString(";")}"
+  private def logHeader: String = s"worker:iteration;${metricHeaders.mkString(";")}"
 }

@@ -1,7 +1,7 @@
 package pl.edu.agh.rabbits.algorithm
 
 import pl.edu.agh.rabbits.config.RabbitsConfig
-import pl.edu.agh.rabbits.model.{Environment, Lettuce, Rabbit}
+import pl.edu.agh.rabbits.model.{Environment, Lettuce, Rabbit, Wolf}
 import pl.edu.agh.xinuk.algorithm.WorldCreator
 import pl.edu.agh.xinuk.model.{CellContents, CellState, WorldBuilder}
 import pl.edu.agh.xinuk.model.grid.{GridCellId, GridWorldBuilder}
@@ -21,15 +21,18 @@ object RabbitsWorldCreator extends WorldCreator[RabbitsConfig] {
     } {
 
       val contents: CellContents = if (random.nextDouble() < config.spawnChance) {
-        if (random.nextDouble() < config.rabbitSpawnChance) {
-        Environment(Some(Rabbit(config.rabbitStartEnergy, 0)), None)
+        if (random.nextDouble() < config.wolfSpawnChance) {
+        Environment(None, None, Some(Wolf(config.wolfStartEnergy, 0)))
+      }
+        else if (random.nextDouble() < config.rabbitSpawnChance) {
+          Environment(Some(Rabbit(config.rabbitStartEnergy, 0)), None, None)
+        }
+      else {
+        Environment(None, Some(Lettuce(0)), None)
+      }
       }
       else {
-        Environment(None, Some(Lettuce(0)))
-      }
-      }
-      else {
-        Environment(None, None)
+        Environment(None, None, None)
       }
 
       worldBuilder(GridCellId(x, y)) = CellState(contents)

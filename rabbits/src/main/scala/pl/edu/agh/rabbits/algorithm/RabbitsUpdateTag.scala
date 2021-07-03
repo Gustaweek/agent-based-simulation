@@ -7,7 +7,11 @@ object RabbitsUpdateTag {
 
   case object Stay extends UpdateTag
 
-  case object Leave extends UpdateTag {
+  case object LeaveRabbit extends UpdateTag {
+    def apply(): StateUpdate = super.apply(Empty)
+  }
+
+  case object LeaveWolf extends UpdateTag {
     def apply(): StateUpdate = super.apply(Empty)
   }
 
@@ -15,7 +19,11 @@ object RabbitsUpdateTag {
 
   case object Spawn extends UpdateTag
 
-  case object Die extends UpdateTag {
+  case object DieRabbit extends UpdateTag {
+    def apply(): StateUpdate = super.apply(Empty)
+  }
+
+  case object DieWolf extends UpdateTag {
     def apply(): StateUpdate = super.apply(Empty)
   }
 

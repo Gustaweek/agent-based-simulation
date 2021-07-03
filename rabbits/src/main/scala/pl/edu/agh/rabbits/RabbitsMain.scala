@@ -29,7 +29,8 @@ object RabbitsMain extends LazyLogging {
     case cellState =>
       cellState.contents match {
         case env: Environment => {
-          if (env.rabbit.isDefined) new Color(139, 69, 19)
+          if (env.wolf.isDefined) Color.BLACK
+          else if (env.rabbit.isDefined) new Color(139, 69, 19)
           else if (env.lettuce.isDefined) new Color(0, 128, 0)
           else Color.WHITE
         }
