@@ -1,7 +1,7 @@
 package pl.edu.agh.continuous.env
 
 import com.typesafe.scalalogging.LazyLogging
-import pl.edu.agh.continuous.env.algorithm.{ContinuousEnvMetrics, ContinuousEnvPlanCreator, ContinuousEnvPlanResolver, ContinuousEnvWorldCreator}
+import pl.edu.agh.continuous.env.algorithm.{ContinuousEnvMetrics, ContinuousEnvWorldCreator, GeoKinMetrics, GeoKinPlanCreator, GeoKinPlanResolver}
 import pl.edu.agh.continuous.env.model.ContinuousEnvCell
 import pl.edu.agh.xinuk.Simulation
 import pl.edu.agh.xinuk.model.{CellState, Signal}
@@ -16,11 +16,11 @@ object ContinuousEnvMain extends LazyLogging {
     import pl.edu.agh.xinuk.config.ValueReaders._
     new Simulation(
       configPrefix,
-      ContinuousEnvMetrics.MetricHeaders,
+      GeoKinMetrics.MetricHeaders,
       ContinuousEnvWorldCreator,
-      ContinuousEnvPlanCreator,
-      ContinuousEnvPlanResolver,
-      ContinuousEnvMetrics.empty,
+      GeoKinPlanCreator,
+      GeoKinPlanResolver,
+      GeoKinMetrics.empty,
       GridSignalPropagation.Bending,
       cellToColor
     ).start()
@@ -35,8 +35,8 @@ object ContinuousEnvMain extends LazyLogging {
   }
 
   private def cellToColorSign(cellState: CellState, continuousEnvCell: ContinuousEnvCell): Color = {
-    if (continuousEnvCell.being != null) {
-      Color.GREEN
+    if (continuousEnvCell.runners.nonEmpty) {
+      Color.RED
     } else if (continuousEnvCell.initialSignal.value > 0) {
       Color.BLUE
     } else if (continuousEnvCell.visited) {

@@ -13,6 +13,7 @@ val Version = new {
   val JFreeChart = "1.5.0"
   val JacksonScala = "2.11.2"
   val JTS = "1.18.1"
+  val ScalaUuid = "0.3.1"
 }
 
 inThisBuild(Seq(
@@ -42,6 +43,7 @@ lazy val `xinuk-core` = project
   .settings(
     name := "xinuk-core",
     libraryDependencies ++= Seq(
+      "io.jvm.uuid" %% "scala-uuid" % Version.ScalaUuid,
       "com.avsystem.commons" %% "commons-core" % Version.AvsCommons,
       "io.altoo" %% "akka-kryo-serialization" % Version.AkkaKryo,
       "com.iheart" %% "ficus" % Version.Ficus,

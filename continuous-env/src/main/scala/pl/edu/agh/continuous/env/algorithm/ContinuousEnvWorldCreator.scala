@@ -3,8 +3,9 @@ package pl.edu.agh.continuous.env.algorithm
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.locationtech.jts.operation.buffer.BufferParameters
 import org.slf4j.Logger
+import pl.edu.agh.continuous.env.common.geometry.Vec2
 import pl.edu.agh.continuous.env.config.ContinuousEnvConfig
-import pl.edu.agh.continuous.env.model.ContinuousEnvCell
+import pl.edu.agh.continuous.env.model.{ContinuousEnvCell, Runner}
 import pl.edu.agh.continuous.env.model.continuous.{Being, BeingMetadata, CellOutline, Obstacle}
 import pl.edu.agh.xinuk.algorithm.WorldCreator
 import pl.edu.agh.xinuk.model.continuous.{Boundary, GridMultiCellId, Neighbourhood, Segment}
@@ -13,7 +14,8 @@ import pl.edu.agh.xinuk.model.{CellState, Signal, WorldBuilder}
 import pl.edu.agh.xinuk.model.grid.{GridCellId, GridDirection, GridWorldBuilder}
 
 import java.awt.geom.Area
-import java.awt.Polygon
+import java.awt.{Color, Polygon}
+import java.util.UUID
 import scala.collection.mutable
 import scala.collection.mutable.{Map => MutableMap}
 import scala.swing.Rectangle
@@ -119,8 +121,13 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
       if (gridMultiCellId.x == 50 && gridMultiCellId.y == 45) {
-        continuousEnvCell.being = Being(config.cellSize / 2, config.cellSize / 2, config.beingSpeed)
-        continuousEnvCell.beingMetadata = BeingMetadata.initial
+        //val runner1: Runner = Runner.createNew(Vec2(50, 50), 10)
+        val runner2: Runner = Runner.createNew(Vec2(65, 35), 30)
+        var guiMapping: Map[UUID, (Double, Double)] = Map.empty
+        //guiMapping += (runner1.id -> (50.0, 50.0))
+        guiMapping += (runner2.id -> (65.0, 35.0))
+        continuousEnvCell.runners = Seq(runner2).toArray
+        continuousEnvCell.coordinates = guiMapping
       }
 
       val boundaryObstacles = getBoundaryObstacles(continuousEnvCell)

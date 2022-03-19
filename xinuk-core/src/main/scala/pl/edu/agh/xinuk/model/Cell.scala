@@ -2,12 +2,17 @@ package pl.edu.agh.xinuk.model
 
 import pl.edu.agh.xinuk.config.XinukConfig
 
+import java.awt.Color
+import java.util.UUID
+
 trait CellId
 
 trait CellContents {
   def generateSignal(iteration: Long)(implicit config: XinukConfig): Signal = Signal.zero
 
   def signalFactor(iteration: Long)(implicit config: XinukConfig): Double = 1.0
+
+  var coordinates: Map[UUID, (Double, Double)] = Map.empty
 }
 
 case object Empty extends CellContents

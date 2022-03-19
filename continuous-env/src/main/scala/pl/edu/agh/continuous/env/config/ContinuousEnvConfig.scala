@@ -21,6 +21,9 @@ final case class ContinuousEnvConfig(
                                 guiType: GuiType,
                                 guiCellSize: Int,
 
+                                personUnitAcceleration: Double,
+                                personMinStepLength: Double,
+
                                 cellSize: Int,
 
                                 signalSpawnChance: Double,

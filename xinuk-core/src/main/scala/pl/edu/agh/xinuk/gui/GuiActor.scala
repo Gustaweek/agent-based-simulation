@@ -1,10 +1,6 @@
 package pl.edu.agh.xinuk.gui
 
-import java.awt.image.BufferedImage
-import java.awt.{Color, Dimension}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-
-import javax.swing.{ImageIcon, UIManager}
 import org.jfree.chart.plot.PlotOrientation
 import org.jfree.chart.{ChartFactory, ChartPanel}
 import org.jfree.data.xy.{XYSeries, XYSeriesCollection}
@@ -16,6 +12,9 @@ import pl.edu.agh.xinuk.model.continuous.GridMultiCellId
 import pl.edu.agh.xinuk.model.grid.GridCellId
 import pl.edu.agh.xinuk.simulation.WorkerActor.{MsgWrapper, SubscribeGridInfo}
 
+import java.awt.image.BufferedImage
+import java.awt.{Color, Dimension}
+import javax.swing.{ImageIcon, UIManager}
 import scala.collection.mutable
 import scala.swing.BorderPanel.Position._
 import scala.swing.TabbedPane.Page
@@ -67,7 +66,7 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
 
   private val ((xOffset, yOffset), (xSize, ySize)) = worldSpan
   private val bgColor = new Color(220, 220, 220)
-  private val cellView = new ParticleCanvas(xOffset, yOffset, xSize, ySize, config.guiCellSize)
+  private val cellView = new ParticleCanvas(xOffset, yOffset, xSize, ySize, config.guiCellSize, config.cellSize)
   private val chartPanel = new BorderPanel {
     background = bgColor
   }
@@ -127,7 +126,7 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
     cellView.set(cells)
   }
 
-  private class ParticleCanvas(xOffset: Int, yOffset: Int, xSize: Int, ySize: Int, guiCellSize: Int) extends Label {
+  private class ParticleCanvas(xOffset: Int, yOffset: Int, xSize: Int, ySize: Int, guiCellSize: Int, cellSize: Int) extends Label {
 
     private val obstacleColor = new swing.Color(0, 0, 0)
     private val emptyColor = new swing.Color(255, 255, 255)
@@ -153,9 +152,20 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
           setGridCellColor(x, y, state)
         case Cell(GridMultiCellId(x, y, _), state) =>
           setGridCellColor(x, y, state)
+          /*if (state.contents.coordinates.nonEmpty) {
+            setColorsForAgents(x, y, state)
+          }*/
         case _ =>
       }
       this.repaint()
+    }
+
+    private def setColorsForAgents(x: Int, y: Int, state: CellState): Unit = {
+      val startX = (x - xOffset) * guiCellSize
+      val startY = (y - yOffset) * guiCellSize
+      val color: Color = cellToColor.applyOrElse(state, defaultColor)
+      state.contents.coordinates.foreach(agentCoords => img.setRGB(agentCoords._2._1.toInt + startX, agentCoords._2._2.toInt + startY,
+        guiCellSize/10, guiCellSize/10, Array.fill(guiCellSize/10 * guiCellSize/10)(color.getRGB), 0, guiCellSize/10))
     }
 
     private def setGridCellColor(x: Int, y: Int, state: CellState): Unit = {
