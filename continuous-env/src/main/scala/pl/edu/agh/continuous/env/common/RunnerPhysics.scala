@@ -28,7 +28,7 @@ object RunnerPhysics {
                                     unitAcceleration: Double,
                                     minStepLength: Double,
                                     maxStepLength: Double): Runner = {
-      //val newStep = newStepUnconstrained(force, unitAcceleration)
+      val newStep = newStepUnconstrained(force, unitAcceleration)
       val clippedNextStep = nextStep.clipLength(
         lowerBound = minStepLength,
         upperBound = maxStepLength

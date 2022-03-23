@@ -26,38 +26,13 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     cellState.contents match {
       case continuousEnvCell: ContinuousEnvCell =>
         if (continuousEnvCell.runners.nonEmpty) {
-          /*var envCells: Iterable[ContinuousEnvCell] = Iterable.empty
-          envCells ++= neighbourhoodState.diagonalNeighbourhoodState
-            .map(state => state._2.contents.asInstanceOf[ContinuousEnvCell])
-          envCells ++= neighbourhoodState.cardinalNeighbourhoodState
-            .map(state => state._2.boundaryStates.values)
-            .map(cell => cell.asInstanceOf[ContinuousEnvCell])*/
-
-          /*var neighboursMap: Map[GridDirection, Iterable[ContinuousEnvCell]] = neighbourhoodState.diagonalNeighbourhoodState
-            .view.mapValues(cell => Iterable.single(cell.contents.asInstanceOf[ContinuousEnvCell]))
-            .toSeq
-            .toMap
-          neighboursMap ++= neighbourhoodState.cardinalNeighbourhoodState
-            .view.mapValues(state => mapBoundaryStateToCells(state))
-            .toSeq
-            .toMap
-          val reverseNeighboursMap = for ((k, v) <- neighboursMap) yield (v, k)
-          val flattenedNeighboursMap: Map[ContinuousEnvCell, GridDirection] = reverseNeighboursMap.flatMap { case (k, v) => k.map(_ -> v) }*/
-
           var neighboursMap: Map[GridDirection, Iterable[(ContinuousEnvCell, UUID)]] = neighbourhoodState.diagonalNeighbourhoodState
-            .filter{ case (_, cellState) => !cellState.equals(CellState.empty())}
+            .filter { case (_, cellState) => !cellState.equals(CellState.empty()) }
             .map(cell => (cell._1, Iterable.single((cell._2.contents.asInstanceOf[ContinuousEnvCell]), UUID.randomUUID())))
           neighboursMap ++= neighbourhoodState.cardinalNeighbourhoodState
             .map(state => (state._1, mapBoundaryStateToCells2(state._2)))
           val reverseNeighboursMap = for ((k, v) <- neighboursMap) yield (v, k)
           val flattenedNeighboursMap: Map[(ContinuousEnvCell, UUID), GridDirection] = reverseNeighboursMap.flatMap { case (k, v) => k.map(_ -> v) }
-
-          /*var neighboursMap: Map[GridDirection, Iterable[ContinuousEnvCell]] = neighbourhoodState.diagonalNeighbourhoodState
-            .map(cell => (cell._1, Iterable.single(cell._2.contents.asInstanceOf[ContinuousEnvCell])))
-          neighboursMap ++= neighbourhoodState.cardinalNeighbourhoodState
-            .map(state => (state._1, mapBoundaryStateToCells(state._2)))
-          val reverseNeighboursMap = for ((k, v) <- neighboursMap) yield (v, k)
-          val flattenedNeighboursMap: Map[ContinuousEnvCell, GridDirection] = reverseNeighboursMap.flatMap { case (k, v) => k.map(_ -> v) }*/
 
           val gridCellId = cellId.asInstanceOf[GridMultiCellId]
           val allReachableRunners = getAllReachableRunners(continuousEnvCell, flattenedNeighboursMap, config)
@@ -144,11 +119,10 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                       signalMap: SignalMap,
                                       config: ContinuousEnvConfig): Runner = {
     val force = signalMap.toVec2.normalized
-    //val force = signalMapToSignalVec(signalMap)
-    val movementLeft = force.length * 20.0 //TODO replace 20 with agent speed
-    val nextStep = Vec2(force.x * movementLeft / force.length, force.y * movementLeft / force.length)
+    val speed = 20.0 //TODO replace with agent speed
+    val nextStep = Vec2(force.x * speed, force.y * speed)
 
-    val adjustedRunner = runner //TODO agents are very slow (and have trouble moving correctly) when cell is of size 100 and not 1 anymore
+    val adjustedRunner = runner //TODO acceleration must be increased by cellsize^2
       .withNewPriority()
       .withIncrementedGeneration()
       .withAppliedForceConsideringLastStep(
@@ -159,26 +133,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         config.cellSize)
 
     reportPossibleFulfillmentDiagnostics(adjustedRunner, config.cellSize)
-
     adjustedRunner
-  }
-
-  private def signalMapToSignalVec(signalMap: SignalMap): Vec2 = {
-    signalMap.value
-      .map({
-        case (direction: GridDirection, signal) => directionSignalToSignalVec(direction, signal)
-        case (_: Direction, _) => Vec2(0d, 0d)
-      })
-      .foldLeft(Vec2.zero)(_ + _)
-      .normalized
-  }
-
-  private def directionSignalToSignalVec(direction: GridDirection, signal: Signal): Vec2 = {
-    if (direction.isCardinal) {
-      Vec2(direction.shift._2 * signal.value, -direction.shift._1 * signal.value)
-    } else { // is diagonal
-      Vec2(direction.shift._2 * signal.value / math.sqrt(2), -direction.shift._1 * signal.value / math.sqrt(2))
-    }
   }
 
   private def reportPossibleFulfillmentDiagnostics(runner: Runner,
@@ -246,10 +201,6 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     val toTop = -toBottom
     val toLeft = Vec2(0, 1)
     val toRight = -toLeft
-    /*val toBottom = Vec2(0, -1)
-    val toTop = -toBottom
-    val toLeft = Vec2(-1, 0)
-    val toRight = -toLeft*/
 
     val cells: Map[(ContinuousEnvCell, UUID), Direction] = neighbourContents + ((currentCell, UUID.randomUUID()) -> null)
     val obstacleSegments: Iterable[Line] = ObstacleMapping.NeighborContentsExtensions(cells)
@@ -287,6 +238,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       .find(intersection => intersection.onLine1 && intersection.onLine2)
       .orNull
 
+    // fixme null ptr exception - maybe it was just bad initial agent positioning/config
     if (nearestPoint.pos.x - position.x > 0) {
       GridDirection.Right
     }
@@ -391,35 +343,6 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     cells.find(cell => (cell.cellOutline.x.doubleValue <= runner.position.x && runner.position.x <= (cell.cellOutline.x + cell.cellOutline.width).doubleValue)
       && (cell.cellOutline.y.doubleValue <= runner.position.y && runner.position.y <= (cell.cellOutline.y + cell.cellOutline.height).doubleValue)).orNull
   }
-
-  /*private def mapCellOutlineToGlobalCoords(cellOutline: CellOutline,
-                                           cellCoords: (Int, Int),
-                                           config: ContinuousEnvConfig): CellOutline = {
-    cellOutline.x = cellOutline.x + config.cellSize * cellCoords._1
-    cellOutline.y = cellOutline.y + config.cellSize * cellCoords._2
-    cellOutline
-  }*/
-
-  /*private def getCellCoordsForDirection(gridDirection: GridDirection,
-                                        neighbourhood: Neighbourhood): (Int, Int) = {
-    val diagonalCoords = neighbourhood.diagonalNeighbourhood
-      .filter { case (direction, _) => direction.equals(gridDirection) }
-      .map { case (_, cellId) => cellId}
-      .headOption
-      .map(cellId => (cellId.x, cellId.y))
-    if (diagonalCoords.nonEmpty) {
-      diagonalCoords.get
-    } else {
-      neighbourhood.cardinalNeighbourhood
-        .filter { case (direction, _) => direction.equals(gridDirection) }
-        .map { case (_, boundary) => boundary.boundaries }
-        .flatten.toMap
-        .headOption
-        .map {case (_, cellId) => cellId}
-        .map(cellId => (cellId.x, cellId.y))
-        .orNull
-    }
-  }*/
 
   private def inflateRunners(runners: Seq[Runner]): Seq[Runner] = runners.map(_.inflate(0.01))
 

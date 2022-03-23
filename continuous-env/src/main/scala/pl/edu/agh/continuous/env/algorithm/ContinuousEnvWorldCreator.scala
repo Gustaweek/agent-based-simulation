@@ -6,8 +6,9 @@ import org.slf4j.Logger
 import pl.edu.agh.continuous.env.common.geometry.Vec2
 import pl.edu.agh.continuous.env.config.ContinuousEnvConfig
 import pl.edu.agh.continuous.env.model.{ContinuousEnvCell, Runner}
-import pl.edu.agh.continuous.env.model.continuous.{Being, BeingMetadata, CellOutline, Obstacle}
+import pl.edu.agh.continuous.env.model.continuous.{Being, BeingMetadata, CellOutline}
 import pl.edu.agh.xinuk.algorithm.WorldCreator
+import pl.edu.agh.xinuk.config.Obstacle
 import pl.edu.agh.xinuk.model.continuous.{Boundary, GridMultiCellId, Neighbourhood, Segment}
 import pl.edu.agh.xinuk.model.grid.GridDirection.{Bottom, BottomLeft, BottomRight, Left, Right, Top, TopLeft, TopRight}
 import pl.edu.agh.xinuk.model.{CellState, Signal, WorldBuilder}
@@ -121,12 +122,12 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
       if (gridMultiCellId.x == 50 && gridMultiCellId.y == 45) {
-        //val runner1: Runner = Runner.createNew(Vec2(50, 50), 10)
-        val runner2: Runner = Runner.createNew(Vec2(65, 35), 30)
-        var guiMapping: Map[UUID, (Double, Double)] = Map.empty
-        //guiMapping += (runner1.id -> (50.0, 50.0))
-        guiMapping += (runner2.id -> (65.0, 35.0))
-        continuousEnvCell.runners = Seq(runner2).toArray
+        val runner1: Runner = Runner.createNew(Vec2(15, 15), 10, Color.RED)
+        val runner2: Runner = Runner.createNew(Vec2(65, 35), 30, Color.GREEN)
+        var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+        guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
+        guiMapping += (runner2.id -> (runner2.position.x, runner2.position.y, runner2.radius, runner2.color))
+        continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
 
@@ -247,7 +248,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
 
     val geometryFactory = new GeometryFactory()
     val shell = geometryFactory.createPolygon(jtsCoordinates)
-    val bufferedPolygon = shell.buffer(config.beingRadius, BufferParameters.CAP_FLAT)
+    val bufferedPolygon = shell.buffer(config.maxAgentRadius, BufferParameters.CAP_FLAT)
 
     var newXs: Array[Int] = Array()
     var newYs: Array[Int] = Array()

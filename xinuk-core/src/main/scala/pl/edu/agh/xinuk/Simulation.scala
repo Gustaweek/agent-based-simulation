@@ -1,8 +1,5 @@
 package pl.edu.agh.xinuk
 
-import java.awt.Color
-import java.io.File
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.cluster.sharding.{ClusterSharding, ClusterShardingSettings}
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
@@ -15,18 +12,20 @@ import pl.edu.agh.xinuk.model._
 import pl.edu.agh.xinuk.model.grid.GridWorldShard
 import pl.edu.agh.xinuk.simulation.WorkerActor
 
+import java.awt.Color
+import java.io.File
 import scala.util.{Failure, Success, Try}
 
 class Simulation[ConfigType <: XinukConfig : ValueReader](
-  configPrefix: String,
-  metricHeaders: Vector[String],
-  worldCreator: WorldCreator[ConfigType],
-  planCreatorFactory: () => PlanCreator[ConfigType],
-  planResolverFactory: () => PlanResolver[ConfigType],
-  emptyMetrics: => Metrics,
-  signalPropagation: SignalPropagation,
-  cellToColor: PartialFunction[CellState, Color] = PartialFunction.empty
-) extends LazyLogging {
+                                                           configPrefix: String,
+                                                           metricHeaders: Vector[String],
+                                                           worldCreator: WorldCreator[ConfigType],
+                                                           planCreatorFactory: () => PlanCreator[ConfigType],
+                                                           planResolverFactory: () => PlanResolver[ConfigType],
+                                                           emptyMetrics: => Metrics,
+                                                           signalPropagation: SignalPropagation,
+                                                           cellToColor: PartialFunction[CellState, Color] = PartialFunction.empty
+                                                         ) extends LazyLogging {
 
   private val rawConfig: Config =
     Try(ConfigFactory.parseFile(new File("xinuk.conf")))
@@ -65,7 +64,7 @@ class Simulation[ConfigType <: XinukConfig : ValueReader](
     if (config.isSupervisor) {
       val workerToWorld: Map[WorkerId, WorldShard] = worldCreator.prepareWorld().build()
 
-      workerToWorld.foreach( { case (workerId, world) =>
+      workerToWorld.foreach({ case (workerId, world) =>
         (config.guiType, world) match {
           case (GuiType.None, _) =>
           case (GuiType.Grid, gridWorld: GridWorldShard) =>

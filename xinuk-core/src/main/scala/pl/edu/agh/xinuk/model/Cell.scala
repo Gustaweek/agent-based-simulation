@@ -12,7 +12,7 @@ trait CellContents {
 
   def signalFactor(iteration: Long)(implicit config: XinukConfig): Double = 1.0
 
-  var coordinates: Map[UUID, (Double, Double)] = Map.empty
+  var coordinates: Map[UUID, (Double, Double, Double, Color)] = Map.empty
 }
 
 case object Empty extends CellContents

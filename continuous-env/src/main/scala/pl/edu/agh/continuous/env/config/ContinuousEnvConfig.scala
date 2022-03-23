@@ -1,7 +1,6 @@
 package pl.edu.agh.continuous.env.config
 
-import pl.edu.agh.continuous.env.model.continuous.Obstacle
-import pl.edu.agh.xinuk.config.{GuiType, XinukConfig}
+import pl.edu.agh.xinuk.config.{Obstacle, GuiType, XinukConfig}
 import pl.edu.agh.xinuk.model.{Signal, WorldType}
 
 final case class ContinuousEnvConfig(
@@ -31,8 +30,7 @@ final case class ContinuousEnvConfig(
 
                                 initialSignal: Signal,
 
-                                beingRadius: Double,
-                                beingSpeed: Double,
+                                maxAgentRadius: Double,
 
                                 obstacles: List[Obstacle]
                               ) extends XinukConfig

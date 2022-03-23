@@ -5,6 +5,7 @@ import pl.edu.agh.continuous.env.model.{ContinuousEnvCell, Runner, RunnerOccupie
 import pl.edu.agh.xinuk.algorithm.{Metrics, PlanResolver, StateUpdate}
 import pl.edu.agh.xinuk.model.CellContents
 
+import java.awt.Color
 import java.util.UUID
 
 final case class GeoKinPlanResolver() extends PlanResolver[ContinuousEnvConfig] {
@@ -57,6 +58,8 @@ final case class GeoKinPlanResolver() extends PlanResolver[ContinuousEnvConfig] 
         (continuousEnvCell, GeoKinMetrics.empty)
       case (continuousEnvCell: ContinuousEnvCell, RunnerOccupied(generation, runners)) =>
         if (continuousEnvCell.initialSignal.equals(config.initialSignal)) {
+          continuousEnvCell.runners = Array.empty
+          continuousEnvCell.coordinates = Map.empty
           (continuousEnvCell, GeoKinMetrics.runnersDone(runners.size))
         }
         else if (continuousEnvCell.runners.isEmpty) {
@@ -70,9 +73,9 @@ final case class GeoKinPlanResolver() extends PlanResolver[ContinuousEnvConfig] 
     }
   }
 
-  private def getRunnersCoords(runners: Array[Runner]): Map[UUID, (Double, Double)] = {
-    var result: Map[UUID, (Double, Double)] = Map.empty
-    runners.foreach(runner => result += (runner.id -> (runner.position.x, runner.position.y)))
+  private def getRunnersCoords(runners: Array[Runner]): Map[UUID, (Double, Double, Double, Color)] = {
+    var result: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+    runners.foreach(runner => result += (runner.id -> (runner.position.x, runner.position.y, runner.radius, runner.color)))
     result
   }
 }
