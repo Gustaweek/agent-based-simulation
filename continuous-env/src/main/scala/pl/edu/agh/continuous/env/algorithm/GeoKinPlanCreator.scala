@@ -92,6 +92,8 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       .map(runner => adjustVelocityForRunner(
         runner,
         signalMap,
+        cell,
+        neighbourContents,
         config))
       .map(runner => adjustNextStepToObstacles(
         runner,
@@ -117,16 +119,41 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
 
   private def adjustVelocityForRunner(runner: Runner,
                                       signalMap: SignalMap,
+                                      cell: ContinuousEnvCell,
+                                      neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
                                       config: ContinuousEnvConfig): Runner = {
-    val force = signalMap.toVec2.normalized
-    val speed = 20.0 //TODO replace with agent speed
-    val nextStep = Vec2(force.x * speed, force.y * speed)
+    if (runner.path.isEmpty) {
+      val force = signalMap.toVec2.normalized
+      if (force.length != 0.0) {
+        val destination = Line(runner.position, Vec2(runner.position.x + force.x * config.cellSize * math.sqrt(2.0),
+          runner.position.y + force.y * config.cellSize * math.sqrt(2.0)))
+        if (cell.graph.isEmpty) {
+          runner.path = List(destination.start, destination.end)
+        }
+        else {
+          runner.path = List.empty //TODO get path based on graph, adjust destination to obstacle
+        }
+      }
+    }
+
+    var nextStep = Vec2.zero
+    if (runner.path.nonEmpty) {
+      val target = runner.path.findLast(vertice => !ObstacleMapping.NeighborContentsExtensions(neighbourContents + ((cell, UUID.randomUUID()) -> null))
+        .mapToObstacleLines(config.cellSize)
+        .map(line => (line, line.intersect(Line(runner.position, vertice))))
+        .filter(intersection => intersection._2.nonEmpty)
+        .exists(intersection => intersection._2.get.onLine1 && intersection._2.get.onLine2))
+        .head
+      val speed = 20.0 //TODO replace with agent speed
+      val movementVector = Line(runner.position, target)
+      nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
+        (movementVector.end.y - movementVector.start.y) / movementVector.length * speed)
+    }
 
     val adjustedRunner = runner //TODO acceleration must be increased by cellsize^2
       .withNewPriority()
       .withIncrementedGeneration()
       .withAppliedForceConsideringLastStep(
-        force,
         nextStep,
         config.personUnitAcceleration,
         config.personMinStepLength,
@@ -269,14 +296,22 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         neighbourContents,
         state,
         config))
-      .groupMap { case (cellId, _) => cellId } { case (_, plan) => plan }
+      .groupMap {
+        case (cellId, _) => cellId
+      } {
+        case (_, plan) => plan
+      }
 
     val localPlans: Seq[Plan] = plansGroupedByCellId
       .getOrElse(gridCellId, Seq(Plan(StateUpdate(RunnerOccupied(cell.generation + 1, Set())))))
       .toSeq
     val outwardPlans: Map[CellId, Seq[Plan]] = plansGroupedByCellId
-      .filterNot { case (cellId, _) => cellId.equals(gridCellId) }
-      .map { case (cellId, value) => (cellId, value.toSeq) }
+      .filterNot {
+        case (cellId, _) => cellId.equals(gridCellId)
+      }
+      .map {
+        case (cellId, value) => (cellId, value.toSeq)
+      }
 
     //reportDiagnostics(RunnerChangeCellDiagnostic(gridCellId, outwardPlans))
 
@@ -311,6 +346,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         (cellId, Plan(StateUpdate(RunnerOccupied(generation + 1, Set(normalizedRunner)))))
       }
       else {
+        normalizedRunner.path = List.empty
         (getTargetNeighbour(neighbourContents, cell.neighbourhood, state, destinationDirection.get.asInstanceOf[GridDirection], normalizedRunner),
           Plan(StateUpdate(RunnerOccupied(generation + 1, Set(normalizedRunner)))))
       }
@@ -327,13 +363,21 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                  movedRunner: Runner): GridMultiCellId = {
     if (gridDirection.isDiagonal) {
       return neighbourhood.diagonalNeighbourhood
-        .filter { case (direction, _) => direction.equals(gridDirection) }
-        .map { case (_, cellId) => cellId }
+        .filter {
+          case (direction, _) => direction.equals(gridDirection)
+        }
+        .map {
+          case (_, cellId) => cellId
+        }
         .headOption.orNull
     }
     val potentialTargets: Iterable[ContinuousEnvCell] = neighbourContents
-      .filter { case (_, direction) => direction.equals(gridDirection) }
-      .map { case ((continuousEnvCell, _), _) => continuousEnvCell }
+      .filter {
+        case (_, direction) => direction.equals(gridDirection)
+      }
+      .map {
+        case ((continuousEnvCell, _), _) => continuousEnvCell
+      }
     val target: ContinuousEnvCell = getTargetCell(potentialTargets, movedRunner)
     getCardinalNeighbourId(neighbourhood, state, target, gridDirection)
   }
@@ -371,11 +415,19 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                      neighbourDirection: GridDirection): GridMultiCellId = {
     val neighbourSegment: Segment = getSegmentForCardinalNeighbour(state, neighbour, neighbourDirection)
     neighbourhood.cardinalNeighbourhood
-      .filter { case (direction, _) => direction.equals(neighbourDirection) }
-      .map { case (_, boundary) => boundary.boundaries }
+      .filter {
+        case (direction, _) => direction.equals(neighbourDirection)
+      }
+      .map {
+        case (_, boundary) => boundary.boundaries
+      }
       .flatten.toMap
-      .filter { case (segment, _) => segment.equals(neighbourSegment) }
-      .map { case (_, cellId) => cellId }
+      .filter {
+        case (segment, _) => segment.equals(neighbourSegment)
+      }
+      .map {
+        case (_, cellId) => cellId
+      }
       .headOption.orNull
   }
 
@@ -383,12 +435,22 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                              neighbour: ContinuousEnvCell,
                                              neighbourDirection: GridDirection): Segment = {
     state.cardinalNeighbourhoodState
-      .filter { case (direction, _) => direction.equals(neighbourDirection) }
-      .map { case (_, boundary) => boundary.boundaryStates }
+      .filter {
+        case (direction, _) => direction.equals(neighbourDirection)
+      }
+      .map {
+        case (_, boundary) => boundary.boundaryStates
+      }
       .flatten.toMap
-      .map { case (segment, cellState) => (segment, cellState.contents.asInstanceOf[ContinuousEnvCell]) }
-      .filter { case (_, continuousEnvCell) => continuousEnvCell.equals(neighbour) }
-      .map { case (segment, _) => segment }
+      .map {
+        case (segment, cellState) => (segment, cellState.contents.asInstanceOf[ContinuousEnvCell])
+      }
+      .filter {
+        case (_, continuousEnvCell) => continuousEnvCell.equals(neighbour)
+      }
+      .map {
+        case (segment, _) => segment
+      }
       .headOption.orNull
   }
 }

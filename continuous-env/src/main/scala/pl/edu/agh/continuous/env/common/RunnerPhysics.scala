@@ -6,8 +6,7 @@ import pl.edu.agh.continuous.env.model.{MoveCompletion, Runner}
 
 object RunnerPhysics {
   implicit class RunnerExtensions(val runner: Runner) extends AnyVal {
-    def withAppliedForceConsideringLastStep(forceDirection: Vec2,
-                                            nextStep: Vec2,
+    def withAppliedForceConsideringLastStep(nextStep: Vec2,
                                             unitAcceleration: Double,
                                             minStepLength: Double,
                                             cellSize: Double): Runner = {
@@ -20,15 +19,14 @@ object RunnerPhysics {
         case None => runner.maxStepLength(cellSize)
       }
 
-      runner.withAppliedForceConstrained(forceDirection, nextStep, unitAcceleration, minStepLength, maxStepLength)
+      runner.withAppliedForceConstrained(nextStep, unitAcceleration, minStepLength, maxStepLength)
     }
 
-    def withAppliedForceConstrained(force: Vec2,
-                                    nextStep: Vec2,
+    def withAppliedForceConstrained(nextStep: Vec2,
                                     unitAcceleration: Double,
                                     minStepLength: Double,
                                     maxStepLength: Double): Runner = {
-      val newStep = newStepUnconstrained(force, unitAcceleration)
+      //val newStep = newStepUnconstrained(force, unitAcceleration)
       val clippedNextStep = nextStep.clipLength(
         lowerBound = minStepLength,
         upperBound = maxStepLength

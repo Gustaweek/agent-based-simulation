@@ -1,31 +1,32 @@
 package pl.edu.agh.continuous.env.algorithm
 
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
+import org.locationtech.jts.geom.{Coordinate, Envelope, GeometryCollection, GeometryFactory}
 import org.locationtech.jts.operation.buffer.BufferParameters
+import org.locationtech.jts.triangulate.VoronoiDiagramBuilder
 import org.slf4j.Logger
-import pl.edu.agh.continuous.env.common.geometry.Vec2
+import pl.edu.agh.continuous.env.common.geometry.{Line, Vec2}
 import pl.edu.agh.continuous.env.config.ContinuousEnvConfig
+import pl.edu.agh.continuous.env.model.continuous.CellOutline
 import pl.edu.agh.continuous.env.model.{ContinuousEnvCell, Runner}
-import pl.edu.agh.continuous.env.model.continuous.{Being, BeingMetadata, CellOutline}
 import pl.edu.agh.xinuk.algorithm.WorldCreator
 import pl.edu.agh.xinuk.config.Obstacle
-import pl.edu.agh.xinuk.model.continuous.{Boundary, GridMultiCellId, Neighbourhood, Segment}
+import pl.edu.agh.xinuk.model.continuous._
 import pl.edu.agh.xinuk.model.grid.GridDirection.{Bottom, BottomLeft, BottomRight, Left, Right, Top, TopLeft, TopRight}
-import pl.edu.agh.xinuk.model.{CellState, Signal, WorldBuilder}
 import pl.edu.agh.xinuk.model.grid.{GridCellId, GridDirection, GridWorldBuilder}
+import pl.edu.agh.xinuk.model.{CellState, Signal, WorldBuilder}
 
 import java.awt.geom.Area
 import java.awt.{Color, Polygon}
 import java.util.UUID
 import scala.collection.mutable
 import scala.collection.mutable.{Map => MutableMap}
+import scala.jdk.CollectionConverters._
+import scala.math.max
 import scala.swing.Rectangle
-import scala.util.Random
 
 
 object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
 
-  private val random = new Random(System.nanoTime())
   var logger: Logger = _
 
   override def prepareWorld()(implicit config: ContinuousEnvConfig): WorldBuilder = {
@@ -155,10 +156,120 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.obstacles = obstaclesInCell
       }
 
+      val obstacles: Array[Obstacle] = continuousEnvCell.obstacles
+        .filter(obstacle => obstacle.points > 0)
+      if (obstacles.nonEmpty) {
+        continuousEnvCell.graph = mapObstaclesToPathGraphVertices(obstacles, continuousEnvCell.cellOutline)
+      }
+      continuousEnvCell.cardinalSegments = mapSegmentsToProperCoords(continuousEnvCell.neighbourhood.cardinalNeighbourhood, config.cellSize)
+
       worldBuilder(gridMultiCellId) = CellState(continuousEnvCell)
     }
 
     worldBuilder
+  }
+
+  private def mapSegmentsToProperCoords(cardinalNeighbourhood: Map[GridDirection, Boundary], cellSize: Int): Map[Line, GridMultiCellId] = {
+    var result: Map[Line, GridMultiCellId] = Map.empty
+    cardinalNeighbourhood
+      .foreach(directionState => directionState._2.boundaries
+        .foreach(segmentEntry => result += (segmentToLine(segmentEntry._1, directionState._1, cellSize) -> segmentEntry._2)))
+    result
+  }
+
+  private def segmentToLine(segment: Segment, gridDirection: GridDirection, cellSize: Int): Line = {
+    gridDirection match {
+      case Left => Line(Vec2(segment.a, cellSize), Vec2(segment.b, cellSize))
+      case Right => Line(Vec2(segment.a, 0), Vec2(segment.b, 0))
+      case Top => Line(Vec2(0, segment.a), Vec2(0, segment.b))
+      case Bottom => Line(Vec2(cellSize, segment.a), Vec2(cellSize, segment.b))
+      case _ => throw new RuntimeException("Direction is not cardinal")
+    }
+  }
+
+  private def mapObstaclesToPathGraphVertices(obstacles: Array[Obstacle], cellOutline: CellOutline): Map[Vec2, Set[(Vec2, Double)]] = {
+    val result: MutableMap[Vec2, Set[(Vec2, Double)]] = MutableMap.empty
+    val graphSegments: Set[Line] = getVoronoiSegments(prepareVoronoiInput(obstacles, cellOutline, 5), cellOutline)
+      .filter(line => !isLineInsideObstacleOrOutline(obstacles, line, cellOutline))
+    var vertices: Set[Vec2] = Set.empty
+    graphSegments.foreach(line => vertices = vertices ++ Set(line.start, line.end))
+    vertices.foreach(v => result(v) = getVerticeNeighbours(v, graphSegments))
+    result.toMap
+  }
+
+  private def getVerticeNeighbours(v: Vec2, lines: Set[Line]): Set[(Vec2, Double)] = {
+    var result: Set[(Vec2, Double)] = Set.empty
+    lines.foreach(line => {
+      if (line.start.equals(v)) {
+        result = result ++ Set((line.end, line.length))
+      }
+      if (line.end.equals(v)) {
+        result = result ++ Set((line.start, line.length))
+      }
+    })
+    result
+  }
+
+  private def prepareVoronoiInput(obstacles: Array[Obstacle], cellOutline: CellOutline, outlineSteps: Int): List[(Int, Int)] = {
+    var voronoiInput: Array[(Int, Int)] = obstacles.map(obstacle => obstacle.xs zip obstacle.ys)
+      .flatMap(vertices => getObstacleVoronoiInput(vertices))
+    for (i <- cellOutline.x - 1 until cellOutline.x + cellOutline.width + 2 by max(cellOutline.width / outlineSteps, 1)) {
+      voronoiInput = voronoiInput :+ (i, cellOutline.y - 1)
+      voronoiInput = voronoiInput :+ (i, cellOutline.y + cellOutline.height + 1)
+    }
+    for (i <- cellOutline.y - 1 until cellOutline.y + cellOutline.height + 2 by max(cellOutline.height / outlineSteps, 1)) {
+      voronoiInput = voronoiInput :+ (cellOutline.x - 1, i)
+      voronoiInput = voronoiInput :+ (cellOutline.x + cellOutline.width + 1, i)
+    }
+    voronoiInput.toList
+  }
+
+  private def getObstacleVoronoiInput(vertices: Array[(Int, Int)]): Array[(Int, Int)] = {
+    var result: Array[(Int, Int)] = Array()
+    for (i <- 0 until vertices.length - 1) {
+      result = result :+ vertices(i)
+      result = result :+ ((vertices(i)._1 + vertices(i + 1)._1) / 2, (vertices(i)._2 + vertices(i + 1)._2) / 2)
+      result = result :+ vertices(i + 1)
+    }
+    result = result :+ ((vertices(vertices.length - 1)._1 + vertices(0)._1) / 2, (vertices(vertices.length - 1)._2 + vertices(0)._2) / 2)
+    result
+  }
+
+  private def isLineInsideObstacleOrOutline(obstacles: Array[Obstacle], line: Line, cellOutline: CellOutline): Boolean = {
+    if (isLineOnOutline(line, cellOutline)) return true
+    obstacles.map(obstacle => new Polygon(obstacle.xs, obstacle.ys, obstacle.xs.length))
+      .exists(polygon => polygon.contains(line.start.x, line.start.y) || polygon.contains(line.end.x, line.end.y))
+  }
+
+  private def isLineOnOutline(line: Line, cellOutline: CellOutline): Boolean = {
+    line.start.x == cellOutline.x - 1 || line.start.x == cellOutline.x + cellOutline.width + 1 ||
+      line.end.x == cellOutline.x - 1 || line.end.x == cellOutline.x + cellOutline.width + 1 ||
+      line.start.y == cellOutline.y - 1 || line.start.y == cellOutline.y + cellOutline.height + 1 ||
+      line.end.y == cellOutline.y - 1 || line.end.y == cellOutline.y + cellOutline.height + 1
+  }
+
+  private def getVoronoiSegments(vertices: List[(Int, Int)], cellOutline: CellOutline): Set[Line] = {
+    val coordinates = vertices map { p => new Coordinate(p._1, p._2) }
+    val voronoi = new VoronoiDiagramBuilder()
+    voronoi.setSites(coordinates.asJava)
+    val envelope = new Envelope(new Coordinate(cellOutline.x - 1, cellOutline.y - 1),
+      new Coordinate(cellOutline.x + cellOutline.width + 1, cellOutline.y + cellOutline.height + 1))
+    voronoi.setClipEnvelope(envelope)
+    val geometry = voronoi.getDiagram(new GeometryFactory()).asInstanceOf[GeometryCollection]
+    val polygons = for (i <- 0 until geometry.getNumGeometries)
+      yield geometry.getGeometryN(i).asInstanceOf[org.locationtech.jts.geom.Polygon]
+    polygons.map(polygon => polygon.getCoordinates)
+      .map(polygon => polygon.map(vertice => Vec2(vertice.x, vertice.y)))
+      .flatMap(polygon => mapCoordsToSegments(polygon))
+      .toSet
+  }
+
+  private def mapCoordsToSegments(coords: Array[Vec2]): Array[Line] = {
+    var result: Array[Line] = Array()
+    for (i <- 0 until coords.length - 1) {
+      result = result :+ Line(coords(i), coords(i + 1))
+    }
+    result
   }
 
   private def getBoundaryObstacles(cell: ContinuousEnvCell)
@@ -331,9 +442,9 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     newYs = Array()
 
     uniquePoints.foreach(point => {
-        newXs = newXs :+ point._1
-        newYs = newYs :+ point._2
-      }
+      newXs = newXs :+ point._1
+      newYs = newYs :+ point._2
+    }
     )
 
     Obstacle(newXs, newYs, newXs.length)
@@ -435,7 +546,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val nextX = obstacle.xs((i + 1) % obstacle.points)
       val nextY = obstacle.ys((i + 1) % obstacle.points)
       if (!isLyingInsideCellOutline(cellOutline, currentX, currentY, cellX, cellY)
-          && !isLyingInsideCellOutline(cellOutline, nextX, nextY, cellX, cellY)) {
+        && !isLyingInsideCellOutline(cellOutline, nextX, nextY, cellX, cellY)) {
         val dummyX = (currentX + nextX) / 2
         val dummyY = (currentY + nextY) / 2
 
@@ -504,7 +615,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     val newCellsNum = countFlips(flags) / 2
 
     var start = 0
-    for (i <- 0 until newCellsNum) {
+    for (_ <- 0 until newCellsNum) {
       val nextTrueBeforeFalse = findNextTrueBeforeFalse(flags, start)
       val nextTrue = findNextTrue(flags, nextTrueBeforeFalse + 1)
 
@@ -574,7 +685,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     var found = false
     for (i <- 0 to flags.length if !found) {
       if (flags((start + i) % flags.length)) {
-        result =  start + i
+        result = start + i
         found = true
       }
     }
@@ -587,9 +698,9 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     var lastBoundaryNum = getBoundaryNumForPoint(cellOutline, cellSplit(cellSplit.length - 1))
 
     val cellOutlineVertices: Array[(Int, Int)] = Array((cellOutline.x, cellOutline.y + cellOutline.height),
-                                                       (cellOutline.x + cellOutline.width, cellOutline.y + cellOutline.height),
-                                                       (cellOutline.x + cellOutline.width, cellOutline.y),
-                                                       (cellOutline.x, cellOutline.y))
+      (cellOutline.x + cellOutline.width, cellOutline.y + cellOutline.height),
+      (cellOutline.x + cellOutline.width, cellOutline.y),
+      (cellOutline.x, cellOutline.y))
 
     var verticesToAdd: Array[(Int, Int)] = Array()
     if (lastBoundaryNum < firstBoundaryNum) {
@@ -603,7 +714,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         }
       }
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         println("oops")
     }
 
@@ -629,7 +740,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
   }
 
   private def createNewCell(existingCell: ContinuousEnvCell, newCellBoundary: Array[(Int, Int)])
-                           (implicit config:ContinuousEnvConfig): ContinuousEnvCell = {
+                           (implicit config: ContinuousEnvConfig): ContinuousEnvCell = {
     val existingNeighbourhood = existingCell.neighbourhood
     var newCellNeighbourhood = Neighbourhood.empty()
     val cardinalNeighbourhood: MutableMap[GridDirection, Boundary] = MutableMap.from(newCellNeighbourhood.cardinalNeighbourhood)
@@ -742,7 +853,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
   }
 
   private def getCommonSegment(segment: Segment, boundarySegment: Segment): Segment = {
-    val a = scala.math.max(segment.a, boundarySegment.a)
+    val a = max(segment.a, boundarySegment.a)
     val b = scala.math.min(segment.b, boundarySegment.b)
 
     if (a > b) {
