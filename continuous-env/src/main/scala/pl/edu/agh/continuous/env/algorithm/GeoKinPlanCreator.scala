@@ -14,7 +14,8 @@ import pl.edu.agh.xinuk.model._
 import pl.edu.agh.xinuk.model.continuous._
 import pl.edu.agh.xinuk.model.grid.GridDirection
 
-import java.util.UUID
+import java.util.{NoSuchElementException, UUID}
+import scala.collection.mutable.ListBuffer
 
 final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
 
@@ -125,25 +126,30 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     if (runner.path.isEmpty) {
       val force = signalMap.toVec2.normalized
       if (force.length != 0.0) {
-        val destination = Line(runner.position, Vec2(runner.position.x + force.x * config.cellSize * math.sqrt(2.0),
+        var destination = Line(runner.position, Vec2(runner.position.x + force.x * config.cellSize * math.sqrt(2.0),
           runner.position.y + force.y * config.cellSize * math.sqrt(2.0)))
+        destination = limitLineToNeighbourObstacles(destination, neighbourContents, config.cellSize)
         if (cell.graph.isEmpty) {
           runner.path = List(destination.start, destination.end)
         }
         else {
-          runner.path = List.empty //TODO get path based on graph, adjust destination to obstacle
+          runner.path = findPath(destination.start, destination.end, cell.graph, config.cellSize).toList
+          //TODO ograniczenie ruchu jak agent idzie na skos
+          //TODO użycie mapy cardinalSegments do wyznaczania id sąsiada na podstawie tego, jaki segment przekroczy agent
         }
       }
     }
 
     var nextStep = Vec2.zero
     if (runner.path.nonEmpty) {
-      val target = runner.path.findLast(vertice => !ObstacleMapping.NeighborContentsExtensions(neighbourContents + ((cell, UUID.randomUUID()) -> null))
-        .mapToObstacleLines(config.cellSize)
-        .map(line => (line, line.intersect(Line(runner.position, vertice))))
-        .filter(intersection => intersection._2.nonEmpty)
-        .exists(intersection => intersection._2.get.onLine1 && intersection._2.get.onLine2))
-        .head
+      var target = Vec2.zero
+      try {
+        target = findNextStep(runner.path, runner.position, cell, neighbourContents, config.cellSize)
+      }
+      catch {
+        case e: NoSuchElementException => runner.path = findPath(runner.position, runner.path.last, cell.graph, config.cellSize).toList
+          target = findNextStep(runner.path, runner.position, cell, neighbourContents, config.cellSize)
+      }
       val speed = 20.0 //TODO replace with agent speed
       val movementVector = Line(runner.position, target)
       nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
@@ -161,6 +167,92 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
 
     reportPossibleFulfillmentDiagnostics(adjustedRunner, config.cellSize)
     adjustedRunner
+  }
+
+  private def findNextStep(path: List[Vec2],
+                           startingPosition: Vec2,
+                           cell: ContinuousEnvCell,
+                           neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                           cellSize: Int): Vec2 = {
+    path.findLast(vertice => !ObstacleMapping.NeighborContentsExtensions(neighbourContents + ((cell, UUID.randomUUID()) -> null))
+      .mapToObstacleLines(cellSize)
+      .map(line => (line, line.intersect(Line(startingPosition, vertice))))
+      .filter(intersection => intersection._2.nonEmpty)
+      .exists(intersection => intersection._2.get.onLine1 && intersection._2.get.onLine2))
+      .head
+  }
+
+  private def limitLineToNeighbourObstacles(line: Line,
+                                            neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                                            cellSize: Int): Line = {
+    var nearestCollisionPoint: Vec2 = Vec2.zero
+    try {
+      nearestCollisionPoint = ObstacleMapping.NeighborContentsExtensions(neighbourContents)
+        .mapToObstacleLines(cellSize)
+        .map(line => line.intersect(line))
+        .filter(intersection => intersection.nonEmpty)
+        .filter(intersection => intersection.get.onLine1 && intersection.get.onLine2)
+        .map(intersection => intersection.get.pos)
+        .minBy(intersectionPoint => Line(line.start, intersectionPoint).length)
+    }
+    catch {
+      case e: UnsupportedOperationException => return line
+    }
+    val newLineLength: Double = Line(line.start, nearestCollisionPoint).length
+    val normalized: Vec2 = Vec2((nearestCollisionPoint.x - line.start.x) / newLineLength,
+      (nearestCollisionPoint.y - line.start.y) / newLineLength)
+    Line(line.start, Vec2(line.start.x + normalized.x * newLineLength * 0.99,
+      line.start.y + normalized.y * newLineLength * 0.99))
+  }
+
+  private def findPath(start: Vec2, end: Vec2, graph: Map[Vec2, Set[Vec2]], cellSize: Int): ListBuffer[Vec2] = {
+    val closestStart: Vec2 = graph.minBy(v => Line(v._1, start).length)._1
+    val closestEnd: Vec2 = graph.minBy(v => Line(v._1, end).length)._1
+    var adjustedGraph: Map[Vec2, Set[Vec2]] = graph
+    adjustedGraph = adjustedGraph + (start -> Set(closestStart))
+    adjustedGraph = adjustedGraph.updatedWith(closestStart)({ case Some(verticeNeighbours) => Some(verticeNeighbours ++ Set(start))
+    case _ => throw new RuntimeException("could not update graph")
+    })
+    adjustedGraph = adjustedGraph + (end -> Set(closestEnd))
+    adjustedGraph = adjustedGraph.updatedWith(closestEnd)({ case Some(verticeNeighbours) => Some(verticeNeighbours ++ Set(end))
+    case _ => throw new RuntimeException("could not update graph")
+    })
+
+    val discoveredNodes: scala.collection.mutable.Set[Vec2] = scala.collection.mutable.Set(start)
+    val cameFrom: scala.collection.mutable.Map[Vec2, Vec2] = scala.collection.mutable.Map.empty
+    val discoveredPathCost: scala.collection.mutable.Map[Vec2, Double] = scala.collection.mutable.Map.empty
+    discoveredPathCost.put(start, 0.0)
+    val totalPathEstimatedCost: scala.collection.mutable.Map[Vec2, Double] = scala.collection.mutable.Map.empty
+    totalPathEstimatedCost.put(start, Line(start, end).length) //heuristic function is simply distance
+
+    while (discoveredNodes.nonEmpty) {
+      val currentNode: Vec2 = discoveredNodes.minBy(node => totalPathEstimatedCost.get(node).orElse(Some(cellSize.doubleValue * 10.0)))
+      if (currentNode.x == end.x && currentNode.y == end.y) {
+        return reconstructPath(cameFrom, currentNode)
+      }
+      discoveredNodes -= currentNode
+      adjustedGraph(currentNode).foreach(neighbourNode => {
+        val currentDistance: Double = discoveredPathCost(currentNode) + Line(currentNode, neighbourNode).length
+        if (currentDistance < discoveredPathCost.get(neighbourNode).orElse(Some(cellSize.doubleValue * 10.0)).get) {
+          cameFrom.put(neighbourNode, currentNode)
+          discoveredPathCost.put(neighbourNode, currentDistance)
+          totalPathEstimatedCost.put(neighbourNode, currentDistance + Line(neighbourNode, end).length)
+          discoveredNodes += neighbourNode
+        }
+      })
+    }
+    throw new RuntimeException("Failed to find path for graph: " + adjustedGraph.toString())
+  }
+
+  private def reconstructPath(cameFrom: scala.collection.mutable.Map[Vec2, Vec2],
+                              current: Vec2): ListBuffer[Vec2] = {
+    val path: ListBuffer[Vec2] = ListBuffer(current)
+    var currentNode: Vec2 = current
+    while (cameFrom.contains(currentNode)) {
+      currentNode = cameFrom.get(currentNode).orNull
+      path.prepend(currentNode)
+    }
+    path
   }
 
   private def reportPossibleFulfillmentDiagnostics(runner: Runner,

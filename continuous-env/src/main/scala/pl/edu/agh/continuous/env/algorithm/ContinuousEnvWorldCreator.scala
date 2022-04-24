@@ -187,8 +187,8 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     }
   }
 
-  private def mapObstaclesToPathGraphVertices(obstacles: Array[Obstacle], cellOutline: CellOutline): Map[Vec2, Set[(Vec2, Double)]] = {
-    val result: MutableMap[Vec2, Set[(Vec2, Double)]] = MutableMap.empty
+  private def mapObstaclesToPathGraphVertices(obstacles: Array[Obstacle], cellOutline: CellOutline): Map[Vec2, Set[Vec2]] = {
+    val result: MutableMap[Vec2, Set[Vec2]] = MutableMap.empty
     val graphSegments: Set[Line] = getVoronoiSegments(prepareVoronoiInput(obstacles, cellOutline, 5), cellOutline)
       .filter(line => !isLineInsideObstacleOrOutline(obstacles, line, cellOutline))
     var vertices: Set[Vec2] = Set.empty
@@ -197,14 +197,14 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     result.toMap
   }
 
-  private def getVerticeNeighbours(v: Vec2, lines: Set[Line]): Set[(Vec2, Double)] = {
-    var result: Set[(Vec2, Double)] = Set.empty
+  private def getVerticeNeighbours(v: Vec2, lines: Set[Line]): Set[Vec2] = {
+    var result: Set[Vec2] = Set.empty
     lines.foreach(line => {
       if (line.start.equals(v)) {
-        result = result ++ Set((line.end, line.length))
+        result = result ++ Set(line.end)
       }
       if (line.end.equals(v)) {
-        result = result ++ Set((line.start, line.length))
+        result = result ++ Set(line.start)
       }
     })
     result

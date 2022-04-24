@@ -14,13 +14,13 @@ final case class ContinuousEnvCell(initialSignal: Signal)(implicit config: Conti
 
   override def signalFactor(iteration: Long)
                            (implicit config: XinukConfig): Double = {
-    ((totalCellField - totalRunnersField) / totalCellField)
+    ((totalCellField() - totalRunnersField) / totalCellField())
       .pow(10.0)
       .clip(lowerBound = 0.0000001, upperBound = 1.0)
   }
 
-  private def totalCellField(implicit config: XinukConfig): Double =
-    math.pow(config.asInstanceOf[ContinuousEnvConfig].cellSize, 2.0)
+  private def totalCellField(): Double =
+    cellOutline.width * cellOutline.height
 
   private def totalRunnersField: Double = runners.map(_.mass).sum
 
@@ -28,7 +28,7 @@ final case class ContinuousEnvCell(initialSignal: Signal)(implicit config: Conti
   var neighbourhood: Neighbourhood = Neighbourhood.empty()
   var obstacles: Array[Obstacle] = Array()
   var runners: Array[Runner] = Array()
-  var graph: Map[Vec2, Set[(Vec2, Double)]] = Map.empty
+  var graph: Map[Vec2, Set[Vec2]] = Map.empty
   var cardinalSegments: Map[Line, GridMultiCellId] = Map.empty
   var generation: Long = 0
   var visited = false
