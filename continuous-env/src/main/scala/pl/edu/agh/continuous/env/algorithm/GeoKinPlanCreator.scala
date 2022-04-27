@@ -135,7 +135,6 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         else {
           runner.path = findPath(destination.start, destination.end, cell.graph, config.cellSize).toList
           //TODO ograniczenie ruchu jak agent idzie na skos
-          //TODO użycie mapy cardinalSegments do wyznaczania id sąsiada na podstawie tego, jaki segment przekroczy agent
         }
       }
     }
@@ -152,8 +151,14 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       }
       val speed = 20.0 //TODO replace with agent speed
       val movementVector = Line(runner.position, target)
-      nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
-        (movementVector.end.y - movementVector.start.y) / movementVector.length * speed)
+      if (movementVector.length <= speed) {
+        nextStep = Vec2(movementVector.end.x - movementVector.start.x, movementVector.end.y - movementVector.start.y)
+        //TODO wybór celu w nowej komórce tak żeby agent nie szarżował, ale też nie zwlaniał nienaturalnie
+      }
+      else {
+        nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
+          (movementVector.end.y - movementVector.start.y) / movementVector.length * speed)
+      }
     }
 
     val adjustedRunner = runner //TODO acceleration must be increased by cellsize^2
@@ -164,9 +169,10 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         config.personUnitAcceleration,
         config.personMinStepLength,
         config.cellSize)
+    val adjustedRunnerForDiagonalMovement = adjustNextStepForDiagonalNeighbourhood(adjustedRunner, neighbourContents, cell)
 
-    reportPossibleFulfillmentDiagnostics(adjustedRunner, config.cellSize)
-    adjustedRunner
+    reportPossibleFulfillmentDiagnostics(adjustedRunnerForDiagonalMovement, config.cellSize)
+    adjustedRunnerForDiagonalMovement
   }
 
   private def findNextStep(path: List[Vec2],
@@ -196,7 +202,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         .minBy(intersectionPoint => Line(line.start, intersectionPoint).length)
     }
     catch {
-      case e: UnsupportedOperationException => return line
+      case e: UnsupportedOperationException => return line //there were no obstacles blocking the line
     }
     val newLineLength: Double = Line(line.start, nearestCollisionPoint).length
     val normalized: Vec2 = Vec2((nearestCollisionPoint.x - line.start.x) / newLineLength,
@@ -264,6 +270,52 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       maxStepLength = maxStepLength,
       normalizedStepLength = runner.nextStep.length
     ))*/
+  }
+
+  private def adjustNextStepForDiagonalNeighbourhood(runner: Runner,
+                                                     neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                                                     cell: ContinuousEnvCell): Runner = {
+    val runnerStep: Line = Line(runner.position, runner.position + runner.nextStep)
+    val crossedLines = runnerCrossedNeighbourSegments(runnerStep, cell.cardinalSegments.keys)
+    if (crossedLines.isEmpty) {
+      return runner //if runner doesn't cross any segment it means it stays in current cell and no movement limiting is needed
+    }
+
+    val crossedLinesOnNeighbourSide = runnerCrossedNeighbourSegments(runnerStep, neighbourContents.keys
+      .flatMap(cell => cell._1.cardinalSegments.keys).toSet)
+    val diagonalNeighbourSegments = getDiagonalNeighboursSegments(neighbourContents)
+    val invalidCrossingPoints = crossedLinesOnNeighbourSide.filter(crossedLine => !crossedLines.contains(crossedLine._1) &&
+      !diagonalNeighbourSegments.contains(crossedLine._1))
+      .map(crossedLine => crossedLine._2)
+    //above we filter any boundary segments of neighbours agent crossed either when leaving original cell or entering diagonal neighbour
+    // - both cases are valid movements, if there are segments that match neither of the above cases,
+    //it means the agent first left its starting cell, went through neighbour and then left this neighbour to another one, however since
+    //the final destination wasn't a diagonal neighbour, it must've been a neighbour's neighbour, so the movement is invalid and must be limited
+    if (invalidCrossingPoints.nonEmpty) {
+      val crossingPoint = invalidCrossingPoints.head
+      val newNextStepLength = Line(runner.position, crossingPoint).length
+      val newNextStep = Vec2(crossingPoint.x - runner.position.x, crossingPoint.y - runner.position.y)
+        .normalized * newNextStepLength * 0.99
+      return runner.withNextStep(newNextStep)
+    }
+    runner
+  }
+
+  private def runnerCrossedNeighbourSegments(runnerStep: Line,
+                                             segments: Iterable[Line]): List[(Line, Vec2)] = {
+    segments
+      .map(segment => (segment, segment.intersect(runnerStep)))
+      .filter(intersection => intersection._2.nonEmpty)
+      .filter(intersection => intersection._2.get.onLine1 && intersection._2.get.onLine2)
+      .map(intersection => (intersection._1, intersection._2.get.pos))
+      .toList
+  }
+
+  private def getDiagonalNeighboursSegments(neighbourContents: Map[(ContinuousEnvCell, UUID), Direction]): List[Line] = {
+    neighbourContents
+      .filter(entry => entry._2.asInstanceOf[GridDirection].isDiagonal)
+      .flatMap(entry => entry._1._1.cardinalSegments.keys)
+      .toList
   }
 
   private def adjustNextStepToObstacles(runner: Runner,
@@ -439,7 +491,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       }
       else {
         normalizedRunner.path = List.empty
-        (getTargetNeighbour(neighbourContents, cell.neighbourhood, state, destinationDirection.get.asInstanceOf[GridDirection], normalizedRunner),
+        (getTargetNeighbour(cell.neighbourhood, cell, destinationDirection.get.asInstanceOf[GridDirection], Line(runner.position, movedRunner.position)),
           Plan(StateUpdate(RunnerOccupied(generation + 1, Set(normalizedRunner)))))
       }
       //musi być runner occupied, żeby móc kilkukrotnie przy resolve plans wpisać dodatkowych agentów do tej samej komórki tak żeby się wszyscy zapisali
@@ -448,11 +500,10 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     }
   }
 
-  private def getTargetNeighbour(neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
-                                 neighbourhood: Neighbourhood,
-                                 state: NeighbourhoodState,
+  private def getTargetNeighbour(neighbourhood: Neighbourhood,
+                                 cell: ContinuousEnvCell,
                                  gridDirection: GridDirection,
-                                 movedRunner: Runner): GridMultiCellId = {
+                                 runnerStep: Line): GridMultiCellId = {
     if (gridDirection.isDiagonal) {
       return neighbourhood.diagonalNeighbourhood
         .filter {
@@ -463,15 +514,16 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         }
         .headOption.orNull
     }
-    val potentialTargets: Iterable[ContinuousEnvCell] = neighbourContents
-      .filter {
-        case (_, direction) => direction.equals(gridDirection)
-      }
-      .map {
-        case ((continuousEnvCell, _), _) => continuousEnvCell
-      }
-    val target: ContinuousEnvCell = getTargetCell(potentialTargets, movedRunner)
-    getCardinalNeighbourId(neighbourhood, state, target, gridDirection)
+    getCardinalTargetNeighbour(runnerStep, cell.cardinalSegments)
+  }
+
+  private def getCardinalTargetNeighbour(runnerStep: Line,
+                                         cardinalNeighbourLineMap: Map[Line, GridMultiCellId]): GridMultiCellId = {
+    cardinalNeighbourLineMap
+      .map(neighbourEntry => (neighbourEntry._1.intersect(runnerStep), neighbourEntry._2))
+      .filter(intersectionEntry => intersectionEntry._1.nonEmpty)
+      .filter(intersectionEntry => intersectionEntry._1.get.onLine1 && intersectionEntry._1.get.onLine2)
+      .head._2
   }
 
   private def getTargetCell(cells: Iterable[ContinuousEnvCell],
