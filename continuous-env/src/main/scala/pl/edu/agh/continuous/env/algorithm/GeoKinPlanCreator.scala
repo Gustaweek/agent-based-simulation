@@ -1,5 +1,6 @@
 package pl.edu.agh.continuous.env.algorithm
 
+import pl.edu.agh.continuous.env.common.CellBoundedPosition.PositionExtensions
 import pl.edu.agh.continuous.env.common.CollisionAvoidance.RunnerCollisionAvoidanceExtensions
 import pl.edu.agh.continuous.env.common.MathUtils.DoubleExtensions
 import pl.edu.agh.continuous.env.common.ObstacleMapping
@@ -126,15 +127,14 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     if (runner.path.isEmpty) {
       val force = signalMap.toVec2.normalized
       if (force.length != 0.0) {
-        var destination = Line(runner.position, Vec2(runner.position.x + force.x * config.cellSize * math.sqrt(2.0),
-          runner.position.y + force.y * config.cellSize * math.sqrt(2.0)))
-        destination = limitLineToNeighbourObstacles(destination, neighbourContents, config.cellSize)
+        val destinationLine = Line(runner.position, Vec2(runner.position.x + force.x * config.cellSize * 3.0,
+          runner.position.y + force.y * config.cellSize * 3.0))
+        val destination = adjustDestination(destinationLine, cell, neighbourContents, config.cellSize)
         if (cell.graph.isEmpty) {
-          runner.path = List(destination.start, destination.end)
+          runner.path = List(runner.position, destination)
         }
         else {
-          runner.path = findPath(destination.start, destination.end, cell.graph, config.cellSize).toList
-          //TODO ograniczenie ruchu jak agent idzie na skos
+          runner.path = findPath(runner.position, destination, cell.graph, config.cellSize).toList
         }
       }
     }
@@ -146,14 +146,13 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         target = findNextStep(runner.path, runner.position, cell, neighbourContents, config.cellSize)
       }
       catch {
-        case e: NoSuchElementException => runner.path = findPath(runner.position, runner.path.last, cell.graph, config.cellSize).toList
+        case _: NoSuchElementException => runner.path = findPath(runner.position, runner.path.last, cell.graph, config.cellSize).toList
           target = findNextStep(runner.path, runner.position, cell, neighbourContents, config.cellSize)
       }
       val speed = 20.0 //TODO replace with agent speed
       val movementVector = Line(runner.position, target)
       if (movementVector.length <= speed) {
         nextStep = Vec2(movementVector.end.x - movementVector.start.x, movementVector.end.y - movementVector.start.y)
-        //TODO wybór celu w nowej komórce tak żeby agent nie szarżował, ale też nie zwlaniał nienaturalnie
       }
       else {
         nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
@@ -173,6 +172,92 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
 
     reportPossibleFulfillmentDiagnostics(adjustedRunnerForDiagonalMovement, config.cellSize)
     adjustedRunnerForDiagonalMovement
+  }
+
+  private def adjustDestination(destinationLine: Line,
+                                cell: ContinuousEnvCell,
+                                neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                                cellSize: Int): Vec2 = {
+    val destination = limitLineToNeighbourObstacles(destinationLine, neighbourContents, cellSize)
+    var targetSegmentVertice = Vec2.zero
+    if (destination.end.x <= cellSize.doubleValue && destination.end.x >= 0.0 &&
+      destination.end.y <= cellSize.doubleValue && destination.end.y >= 0.0) {
+      val targetSegment = cell.cardinalSegments.minBy(segmentEntry =>
+        Math.min(Line(destination.end, segmentEntry._1.start).length,
+          Line(destination.end, segmentEntry._1.end).length))._1
+
+      if (Line(destination.end, targetSegment.start).length <
+        Line(destination.end, targetSegment.end).length) {
+        targetSegmentVertice = targetSegment.start
+      }
+      else {
+        targetSegmentVertice = targetSegment.end
+      }
+      val destinationDir = getDirectionForCoords(targetSegment.center, cellSize.doubleValue)
+      val neighbour = getNeighbourForLine(neighbourContents, targetSegment)
+      if (neighbour.graph.nonEmpty) {
+        return neighbour.graph
+          .map(graphVertice => graphVertice._1.cellBounded(cellSize, false).adjust(destinationDir, false))
+          .minBy(graphVertice => Line(graphVertice, targetSegmentVertice).length)
+      }
+      return destination.start + Vec2(destination.start, targetSegmentVertice) * 1.5
+    }
+
+    val destinationDir = getDirectionForCoords(destination.end, cellSize.doubleValue)
+    var neighbour: ContinuousEnvCell = cell
+    if (destinationDir.isDiagonal) {
+      neighbour = neighbourContents.filter(cell => cell._2.equals(destinationDir))
+        .map(cell => cell._1._1)
+        .head
+    }
+    else {
+      val targetSegment = crossedNeighbourSegments(destination, cell.cardinalSegments.keys)
+        .minBy(crossedSegment => Line(crossedSegment._2, destination.start).length)._1
+      neighbour = getNeighbourForLine(neighbourContents, targetSegment)
+    }
+
+    if (neighbour.graph.nonEmpty) {
+      neighbour.graph
+        .map(graphVertice => graphVertice._1.cellBounded(cellSize, false).adjust(destinationDir, false))
+        .minBy(graphVertice => Line(graphVertice, destination.end).length)
+    }
+    destination.end
+  }
+
+  private def getDirectionForCoords(coords: Vec2, cellSize: Double): GridDirection = {
+    if (coords.x <= 0.0) {
+      if (coords.y <= 0.0) {
+        return GridDirection.TopRight
+      }
+      if (coords.y >= cellSize) {
+        return GridDirection.TopLeft
+      }
+      return GridDirection.Top
+    }
+    if (coords.x >= cellSize) {
+      if (coords.y <= 0.0) {
+        return GridDirection.BottomRight
+      }
+      if (coords.y >= cellSize) {
+        return GridDirection.BottomLeft
+      }
+      return GridDirection.Bottom
+    }
+    if (coords.y <= 0.0) {
+      return GridDirection.Right
+    }
+    GridDirection.Left
+  }
+
+  private def getNeighbourForLine(neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                                  segment: Line): ContinuousEnvCell = {
+    val dirNeighbours: List[ContinuousEnvCell] = neighbourContents
+      .filter(cell => cell._2.asInstanceOf[GridDirection].isCardinal)
+      .map(cell => cell._1._1)
+      .toList
+    dirNeighbours
+      .filter(neighbour => neighbour.cardinalSegments.exists(entry => entry._1.equals(segment)))
+      .head
   }
 
   private def findNextStep(path: List[Vec2],
@@ -202,7 +287,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         .minBy(intersectionPoint => Line(line.start, intersectionPoint).length)
     }
     catch {
-      case e: UnsupportedOperationException => return line //there were no obstacles blocking the line
+      case _: UnsupportedOperationException => return line //there were no obstacles blocking the line
     }
     val newLineLength: Double = Line(line.start, nearestCollisionPoint).length
     val normalized: Vec2 = Vec2((nearestCollisionPoint.x - line.start.x) / newLineLength,
@@ -276,12 +361,12 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                                      neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
                                                      cell: ContinuousEnvCell): Runner = {
     val runnerStep: Line = Line(runner.position, runner.position + runner.nextStep)
-    val crossedLines = runnerCrossedNeighbourSegments(runnerStep, cell.cardinalSegments.keys)
+    val crossedLines = crossedNeighbourSegments(runnerStep, cell.cardinalSegments.keys)
     if (crossedLines.isEmpty) {
       return runner //if runner doesn't cross any segment it means it stays in current cell and no movement limiting is needed
     }
 
-    val crossedLinesOnNeighbourSide = runnerCrossedNeighbourSegments(runnerStep, neighbourContents.keys
+    val crossedLinesOnNeighbourSide = crossedNeighbourSegments(runnerStep, neighbourContents.keys
       .flatMap(cell => cell._1.cardinalSegments.keys).toSet)
     val diagonalNeighbourSegments = getDiagonalNeighboursSegments(neighbourContents)
     val invalidCrossingPoints = crossedLinesOnNeighbourSide.filter(crossedLine => !crossedLines.contains(crossedLine._1) &&
@@ -301,10 +386,10 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     runner
   }
 
-  private def runnerCrossedNeighbourSegments(runnerStep: Line,
-                                             segments: Iterable[Line]): List[(Line, Vec2)] = {
+  private def crossedNeighbourSegments(crossingLine: Line,
+                                       segments: Iterable[Line]): List[(Line, Vec2)] = {
     segments
-      .map(segment => (segment, segment.intersect(runnerStep)))
+      .map(segment => (segment, segment.intersect(crossingLine)))
       .filter(intersection => intersection._2.nonEmpty)
       .filter(intersection => intersection._2.get.onLine1 && intersection._2.get.onLine2)
       .map(intersection => (intersection._1, intersection._2.get.pos))

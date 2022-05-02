@@ -64,6 +64,13 @@ final case class Line(start: Vec2, end: Vec2) {
   def isVertical: Boolean = dx == 0
 
   def isHorizontal: Boolean = dy == 0
+
+  override def equals(obj: Any): Boolean = {
+    start.x == obj.asInstanceOf[Line].start.x &&
+      start.y == obj.asInstanceOf[Line].start.y &&
+      end.x == obj.asInstanceOf[Line].end.x &&
+      end.y == obj.asInstanceOf[Line].end.y
+  }
 }
 
 object Line {
