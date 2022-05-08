@@ -179,13 +179,23 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
 
   private def segmentToLine(segment: Segment, gridDirection: GridDirection, cellSize: Int): Line = {
     gridDirection match {
-      case Left => Line(Vec2(segment.a, cellSize), Vec2(segment.b, cellSize))
-      case Right => Line(Vec2(segment.a, 0), Vec2(segment.b, 0))
-      case Top => Line(Vec2(0, segment.a), Vec2(0, segment.b))
-      case Bottom => Line(Vec2(cellSize, segment.a), Vec2(cellSize, segment.b))
+      case Left => Line(Vec2(0, segment.a), Vec2(0, segment.b))
+      case Right => Line(Vec2(cellSize, segment.a), Vec2(cellSize, segment.b))
+      case Top => Line(Vec2(segment.a, cellSize), Vec2(segment.b, cellSize))
+      case Bottom => Line(Vec2(segment.a, 0), Vec2(segment.b, 0))
       case _ => throw new RuntimeException("Direction is not cardinal")
     }
   }
+
+  /*private def segmentToLine(segment: Segment, gridDirection: GridDirection, cellSize: Int): Line = {
+    gridDirection match {
+      case Left => Line(Vec2(segment.a, cellSize), Vec2(segment.b, cellSize))
+      case Right => Line(Vec2(segment.a, 0), Vec2(segment.b, 0))
+      case Top => Line(Vec2(0, cellSize - segment.b), Vec2(0, cellSize - segment.a))
+      case Bottom => Line(Vec2(cellSize, cellSize - segment.b), Vec2(cellSize, cellSize - segment.a))
+      case _ => throw new RuntimeException("Direction is not cardinal")
+    }
+  }*/
 
   private def mapObstaclesToPathGraphVertices(obstacles: Array[Obstacle], cellOutline: CellOutline): Map[Vec2, Set[Vec2]] = {
     val result: MutableMap[Vec2, Set[Vec2]] = MutableMap.empty

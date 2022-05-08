@@ -11,22 +11,22 @@ object ToVec2Conversions {
 
   implicit class DirectionConversionExtensions(val direction: Direction) {
     def toVec2: Vec2 = direction match {
-      /*case GridDirection.Top => Vec2(0, 1)
+      case GridDirection.Top => Vec2(0, 1)
       case GridDirection.TopRight => Vec2(1, 1)
       case GridDirection.Right => Vec2(1, 0)
       case GridDirection.BottomRight => Vec2(1, -1)
       case GridDirection.Bottom => Vec2(0, -1)
       case GridDirection.BottomLeft => Vec2(-1, -1)
       case GridDirection.Left => Vec2(-1, 0)
-      case GridDirection.TopLeft => Vec2(-1, 1)*/
-      case GridDirection.Top => Vec2(-1, 0)
+      case GridDirection.TopLeft => Vec2(-1, 1)
+      /*case GridDirection.Top => Vec2(-1, 0)
       case GridDirection.TopRight => Vec2(-1, -1)
       case GridDirection.Right => Vec2(0, -1)
       case GridDirection.BottomRight => Vec2(1, -1)
       case GridDirection.Bottom => Vec2(1, 0)
       case GridDirection.BottomLeft => Vec2(1, 1)
       case GridDirection.Left => Vec2(0, 1)
-      case GridDirection.TopLeft => Vec2(-1, 1)
+      case GridDirection.TopLeft => Vec2(-1, 1)*/
       case _ => throw new UnsupportedOperationException("Unknown direction")
     }
   }

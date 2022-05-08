@@ -48,12 +48,16 @@ object ContinuousEnvMain extends LazyLogging {
         .getOrElse(0d)
 
       if (maxSignal > 0.75) {
+        ///Color.WHITE
         new Color(64, 64, 255)
       } else if (maxSignal > 0.3) {
+        //Color.WHITE
         new Color(128, 128, 255)
       } else if (maxSignal > 0.1) {
+        //Color.WHITE
         new Color(192, 192, 255)
       } else if (maxSignal > 0) {
+        //Color.WHITE
         new Color(224, 224, 255)
       } else {
         Color.WHITE

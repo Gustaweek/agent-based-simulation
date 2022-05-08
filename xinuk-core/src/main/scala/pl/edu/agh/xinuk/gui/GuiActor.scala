@@ -176,10 +176,15 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
       val startY = (y - yOffset) * guiCellSize
       val graphics: Graphics = img.getGraphics
       state.contents.coordinates.values.foreach(agentCoords => {
-        //TODO y values inverted symmetrically in a cell (so for example if it was 10 it is now 90)
-        // because in simulation ys go up to down but in gui they go down to up, which causes the agents in GUI to look like going up when in reality they go down
-        drawAgent(graphics, startX.doubleValue + agentCoords._1 * guiCellSize / cellSize,
+        //y values inverted symmetrically in a cell (so for example if it was 10 it is now 90)
+        //because in simulation ys go up to down but in gui they go down to up, which causes the agents in GUI to look like going up when in reality they go down
+        /*drawAgent(graphics, startX.doubleValue + agentCoords._1 * guiCellSize / cellSize,
           startY.doubleValue + (cellSize - agentCoords._2) * guiCellSize / cellSize,
+          agentCoords._3 * guiCellSize / cellSize, agentCoords._4)*/
+        val rotatedAgentX = (agentCoords._2 - cellSize / 2) * (-1.0) + cellSize / 2
+        val rotatedAgentY = agentCoords._1 //90 degrees clockwise to match visualization's rotation of true coords
+        drawAgent(graphics, startX.doubleValue + rotatedAgentX * guiCellSize / cellSize,
+          startY.doubleValue + rotatedAgentY * guiCellSize / cellSize,
           agentCoords._3 * guiCellSize / cellSize, agentCoords._4)
       })
     }

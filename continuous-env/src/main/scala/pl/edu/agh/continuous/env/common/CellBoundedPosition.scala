@@ -25,7 +25,7 @@ class CellBoundedPosition(val position: Vec2,
 
   def toDirection: Option[Direction] =
     coordinatesRelationToCell match {
-      /*case (Within, Within) => None
+      case (Within, Within) => None
       case (Within, After) => Some(GridDirection.Top)
       case (After, After) => Some(GridDirection.TopRight)
       case (After, Within) => Some(GridDirection.Right)
@@ -33,8 +33,8 @@ class CellBoundedPosition(val position: Vec2,
       case (Within, Before) => Some(GridDirection.Bottom)
       case (Before, Before) => Some(GridDirection.BottomLeft)
       case (Before, Within) => Some(GridDirection.Left)
-      case (Before, After) => Some(GridDirection.TopLeft)*/
-      case (Within, Within) => None
+      case (Before, After) => Some(GridDirection.TopLeft)
+      /*case (Within, Within) => None
       case (Within, After) => Some(GridDirection.Left)
       case (After, After) => Some(GridDirection.BottomLeft)
       case (After, Within) => Some(GridDirection.Bottom)
@@ -42,7 +42,7 @@ class CellBoundedPosition(val position: Vec2,
       case (Within, Before) => Some(GridDirection.Right)
       case (Before, Before) => Some(GridDirection.TopRight)
       case (Before, Within) => Some(GridDirection.Top)
-      case (Before, After) => Some(GridDirection.TopLeft)
+      case (Before, After) => Some(GridDirection.TopLeft)*/
       case _ => throwOutOfRangeException
     }
 

@@ -70,7 +70,7 @@ object CollisionAvoidance {
     def getMaxMoveCompletionConsideringOtherRunnersBodies(runners: Seq[Runner]): MoveCompletion = {
       try {
         val position = runner.position
-        val normalToStep = runner.nextStep.normal
+        val normalToStep = runner.nextStep //TODO was normal aka turned 90 degrees
         val sidePoint = position + normalToStep
 
         runners
@@ -96,7 +96,7 @@ object CollisionAvoidance {
     def getMaxMoveCompletionConsideringOtherRunnersSweptBodies(runners: Seq[Runner]): MoveCompletion = {
       try {
         val position = runner.position
-        val normalToStep = runner.nextStep.normal
+        val normalToStep = runner.nextStep //TODO was normal aka turned 90 degrees
         val sidePoint = position + normalToStep
 
         runners
