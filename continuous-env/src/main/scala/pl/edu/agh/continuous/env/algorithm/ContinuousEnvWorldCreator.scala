@@ -51,7 +51,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 60 && y == 80) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 23 && y == 12) {
         ContinuousEnvCell(config.initialSignal)
       } else {
         ContinuousEnvCell(Signal.zero)
@@ -122,7 +122,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 50 && gridMultiCellId.y == 45) {
+      if (gridMultiCellId.x == 1 && gridMultiCellId.y == 12) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 10, Color.RED)
         val runner2: Runner = Runner.createNew(Vec2(65, 35), 30, Color.GREEN)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -237,9 +237,12 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
   private def getObstacleVoronoiInput(vertices: Array[(Int, Int)]): Array[(Int, Int)] = {
     var result: Array[(Int, Int)] = Array()
     for (i <- 0 until vertices.length - 1) {
+      val center = ((vertices(i)._1 + vertices(i + 1)._1) / 2, (vertices(i)._2 + vertices(i + 1)._2) / 2)
       result = result :+ vertices(i)
-      result = result :+ ((vertices(i)._1 + vertices(i + 1)._1) / 2, (vertices(i)._2 + vertices(i + 1)._2) / 2)
       result = result :+ vertices(i + 1)
+      result = result :+ center
+      result = result :+ ((center._1 + vertices(i + 1)._1) / 2, (center._2 + vertices(i + 1)._2) / 2)
+      result = result :+ ((vertices(i)._1 + center._1) / 2, (vertices(i)._2 + center._2) / 2)
     }
     result = result :+ ((vertices(vertices.length - 1)._1 + vertices(0)._1) / 2, (vertices(vertices.length - 1)._2 + vertices(0)._2) / 2)
     result
