@@ -4,6 +4,7 @@ import pl.edu.agh.continuous.env.common.CellBoundedPosition.PositionExtensions
 import pl.edu.agh.continuous.env.common.CollisionAvoidance.RunnerCollisionAvoidanceExtensions
 import pl.edu.agh.continuous.env.common.MathUtils.DoubleExtensions
 import pl.edu.agh.continuous.env.common.ObstacleMapping
+import pl.edu.agh.continuous.env.common.ObstacleMapping.toObstacleSegments
 import pl.edu.agh.continuous.env.common.RunnerPhysics.RunnerExtensions
 import pl.edu.agh.continuous.env.common.ToVec2Conversions.SignalMapConversionExtensions
 import pl.edu.agh.continuous.env.common.geometry.Algorithms.LineIntersection
@@ -177,13 +178,12 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                 cell: ContinuousEnvCell,
                                 neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
                                 cellSize: Int): Vec2 = {
-    val destination = limitLineToNeighbourObstacles(destinationLine, neighbourContents, cellSize)
+    val destination = limitLineToNeighbourObstacles(destinationLine, cell, neighbourContents, cellSize)
     var targetSegmentVertice = Vec2.zero
     if (destination.end.x <= cellSize.doubleValue && destination.end.x >= 0.0 &&
       destination.end.y <= cellSize.doubleValue && destination.end.y >= 0.0) {
       val targetSegment = cell.cardinalSegments.minBy(segmentEntry =>
-        Math.min(Line(destination.end, segmentEntry._1.start).length,
-          Line(destination.end, segmentEntry._1.end).length))._1
+        segmentEntry._1.segmentDistance(destinationLine.end))._1 //use original destination to get most accurate results
 
       if (Line(destination.end, targetSegment.start).length <
         Line(destination.end, targetSegment.end).length) {
@@ -193,7 +193,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         targetSegmentVertice = targetSegment.end
       }
       val destinationDir = getDirectionForCoords(targetSegment.center, cellSize.doubleValue)
-      val neighbour = getNeighbourForLine(neighbourContents, targetSegment, cellSize)
+      val neighbour = getNeighbourForCrossingPoint(neighbourContents, targetSegment.center, cellSize)
       if (neighbour.graph.nonEmpty) {
         return neighbour.graph
           .map(graphVertice => graphVertice._1.cellBounded(cellSize, true).adjust(destinationDir, true))
@@ -228,7 +228,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     if (!sendToDiagonal) {
       targetSegment = crossedNeighbourSegments(destination, cell.cardinalSegments.keys)
         .minBy(crossedSegment => Line(crossedSegment._2, destination.start).length)
-      neighbour = getNeighbourForLine(neighbourContents, targetSegment._1, cellSize)
+      neighbour = getNeighbourForCrossingPoint(neighbourContents, targetSegment._2, cellSize)
     }
 
     if (neighbour.graph.nonEmpty) {
@@ -289,9 +289,9 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     GridDirection.Left
   }*/
 
-  private def getNeighbourForLine(neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
-                                  segment: Line,
-                                  cellSize: Int): ContinuousEnvCell = {
+  private def getNeighbourForCrossingPoint(neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
+                                           crossingPoint: Vec2,
+                                           cellSize: Int): ContinuousEnvCell = {
     /*.map(cell => cell._1._1.cardinalSegments.start.cellBounded(cellSize, true).adjust(destinationDir, true),
       segment.end.cellBounded(cellSize, true).adjust(destinationDir, true))*/
     val dirNeighbours: Map[(ContinuousEnvCell, UUID), Iterable[Line]] = neighbourContents
@@ -300,7 +300,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         .map(segment => Line(segment._1.start.cellBounded(cellSize, true).adjust(cell._2, true),
           segment._1.end.cellBounded(cellSize, true).adjust(cell._2, true)))))
     dirNeighbours
-      .filter(neighbour => neighbour._2.toList.contains(segment))
+      .filter(neighbour => neighbour._2.toList.exists(line => line.segmentContains(crossingPoint)))
       .keys.head._1
     /*val dirNeighbours: List[ContinuousEnvCell] = neighbourContents
       .filter(cell => cell._2.asInstanceOf[GridDirection].isCardinal)
@@ -341,12 +341,22 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
   }
 
   private def limitLineToNeighbourObstacles(destinationLine: Line,
+                                            cell: ContinuousEnvCell,
                                             neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
                                             cellSize: Int): Line = {
     var nearestCollisionPoint: Vec2 = Vec2.zero
+    var obstacleLines = ObstacleMapping.NeighborContentsExtensions(neighbourContents)
+      .mapToObstacleLines(cellSize)
+    val additionalLines: Iterable[Line] = cell.obstacles
+      .filter(obstacle => obstacle.xs.contains(0) || obstacle.ys.contains(cellSize)
+        || obstacle.ys.contains(0) || obstacle.ys.contains(cellSize))
+      .map(obstacle => toObstacleSegments(obstacle))
+      .flatMap(segments => segments.map(segment => Line(Vec2(segment._2.a._1, segment._2.a._2), Vec2(segment._2.b._1, segment._2.b._2)))
+        .toIterable)
+    obstacleLines = obstacleLines ++ additionalLines
+
     try {
-      nearestCollisionPoint = ObstacleMapping.NeighborContentsExtensions(neighbourContents)
-        .mapToObstacleLines(cellSize)
+      nearestCollisionPoint = obstacleLines
         .map(line => line.intersect(destinationLine))
         .filter(intersection => intersection.nonEmpty)
         .filter(intersection => intersection.get.onLine1 && intersection.get.onLine2)
