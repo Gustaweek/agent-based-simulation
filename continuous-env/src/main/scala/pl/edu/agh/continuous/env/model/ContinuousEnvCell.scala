@@ -14,7 +14,7 @@ final case class ContinuousEnvCell(initialSignal: Signal)(implicit config: Conti
 
   override def signalFactor(iteration: Long)
                            (implicit config: XinukConfig): Double = {
-    ((totalCellField() - totalRunnersField) / totalCellField())
+    ((totalCellField() - totalRunnersField) / totalCellField() * 0.5)
       .pow(10.0)
       .clip(lowerBound = 0.0000001, upperBound = 1.0)
   }

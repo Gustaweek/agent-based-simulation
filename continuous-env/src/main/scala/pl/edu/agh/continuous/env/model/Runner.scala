@@ -15,6 +15,7 @@ final case class Runner(id: UUID,
                         radius: Double,
                         nextStep: Vec2,
                         var path: List[Vec2],
+                        speed: Double,
                         lastMoveCompletion: Option[MoveCompletion],
                         isStuck: Boolean,
                         color: Color) extends Equals {
@@ -43,6 +44,7 @@ final case class Runner(id: UUID,
     radius,
     nextStep,
     path,
+    speed,
     Some(moveCompletion),
     moveCompletion.tag.equals("e"),
     color
@@ -56,17 +58,18 @@ final case class Runner(id: UUID,
     radius,
     nextStep,
     path,
+    speed,
     lastMoveCompletion,
     isStuck,
     color
   )
 
-  def withNextStep(nextStep: Vec2): Runner = Runner(id, generation, priority, position, radius, nextStep, path, None, isStuck, color)
+  def withNextStep(nextStep: Vec2): Runner = Runner(id, generation, priority, position, radius, nextStep, path, speed, None, isStuck, color)
 
   def withAdjustedPosition(cellSize: Double,
                            direction: Direction): Runner = {
     val newPosition = position.cellBounded(cellSize, false).adjust(direction, false)
-    Runner(id, generation, priority, newPosition, radius, nextStep, path, lastMoveCompletion, isStuck, color)
+    Runner(id, generation, priority, newPosition, radius, nextStep, path, speed, lastMoveCompletion, isStuck, color)
   }
 
   def withIncrementedGeneration(): Runner = Runner(
@@ -77,6 +80,7 @@ final case class Runner(id: UUID,
     radius,
     nextStep,
     path,
+    speed,
     lastMoveCompletion,
     isStuck,
     color
@@ -84,7 +88,7 @@ final case class Runner(id: UUID,
 
   def normalizePosition(cellSize: Double): (Runner, Option[Direction]) = {
     val (newPosition, maybeDirection) = position.cellBounded(cellSize, false).normalize
-    (Runner(id, generation, priority, newPosition, radius, nextStep, path, lastMoveCompletion, isStuck, color), maybeDirection)
+    (Runner(id, generation, priority, newPosition, radius, nextStep, path, speed, lastMoveCompletion, isStuck, color), maybeDirection)
   }
 
   def inflate(radiusDelta: Double): Runner = Runner(
@@ -95,6 +99,7 @@ final case class Runner(id: UUID,
     radius + radiusDelta,
     nextStep,
     path,
+    speed,
     lastMoveCompletion,
     isStuck,
     color
@@ -123,6 +128,7 @@ object Runner {
             radius: Double,
             nextStep: Vec2,
             path: List[Vec2],
+            speed: Double,
             lastMoveCompletion: Option[MoveCompletion],
             isStuck: Boolean,
             color: Color): Runner =
@@ -134,6 +140,7 @@ object Runner {
       radius,
       nextStep,
       path,
+      speed,
       lastMoveCompletion,
       isStuck = isStuck,
       color)
@@ -141,6 +148,7 @@ object Runner {
   def createNew(position: Vec2,
                 radius: Double,
                 nextStep: Vec2,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -150,6 +158,7 @@ object Runner {
       radius,
       nextStep,
       List.empty,
+      speed,
       None,
       isStuck = false,
       color)
@@ -157,6 +166,7 @@ object Runner {
   def createNew(start: Vec2,
                 end: Vec2,
                 radius: Double,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -166,12 +176,14 @@ object Runner {
       radius,
       end - start,
       List.empty,
+      speed,
       None,
       isStuck = false,
       color)
 
   def createNew(position: Vec2,
                 radius: Double,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -181,11 +193,13 @@ object Runner {
       radius,
       nextStep = Vec2.zero,
       List.empty,
+      speed,
       None,
       isStuck = false,
       color)
 
   def createNewMock(sweptCircle: SweptCircle,
+                    speed: Double,
                     color: Color): Runner =
     new Runner(
       UUID(0, 0),
@@ -195,6 +209,7 @@ object Runner {
       radius = sweptCircle.r,
       nextStep = sweptCircle.line.vector,
       List.empty,
+      speed,
       None,
       isStuck = false,
       color)
