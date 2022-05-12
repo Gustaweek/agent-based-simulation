@@ -51,7 +51,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 23 && y == 10) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 23 && y == 16) {
         ContinuousEnvCell(config.initialSignal)
       } else {
         ContinuousEnvCell(Signal.zero)
@@ -122,11 +122,40 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 8 && gridMultiCellId.y == 11) {
-        val runner1: Runner = Runner.createNew(Vec2(1, 1), 10, 10.0, Color.GREEN)
+      if (gridMultiCellId.x == 1 && gridMultiCellId.y == 9) {
+        val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 10.0, Color.GREEN)
+        val runner2: Runner = Runner.createNew(Vec2(45, 65), 15, 17.0, Color.RED)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
         guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
-        continuousEnvCell.runners = Seq(runner1).toArray
+        guiMapping += (runner2.id -> (runner2.position.x, runner2.position.y, runner2.radius, runner2.color))
+        continuousEnvCell.runners = Seq(runner1, runner2).toArray
+        continuousEnvCell.coordinates = guiMapping
+      }
+      if (gridMultiCellId.x == 11 && gridMultiCellId.y == 6) {
+        val runner1: Runner = Runner.createNew(Vec2(15, 15), 18, 20.0, Color.PINK)
+        val runner2: Runner = Runner.createNew(Vec2(45, 65), 10, 15.0, Color.YELLOW)
+        var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+        guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
+        guiMapping += (runner2.id -> (runner2.position.x, runner2.position.y, runner2.radius, runner2.color))
+        continuousEnvCell.runners = Seq(runner1, runner2).toArray
+        continuousEnvCell.coordinates = guiMapping
+      }
+      if (gridMultiCellId.x == 19 && gridMultiCellId.y == 13) {
+        val runner1: Runner = Runner.createNew(Vec2(15, 85), 13, 18.0, Color.CYAN)
+        val runner2: Runner = Runner.createNew(Vec2(45, 65), 10, 15.0, Color.ORANGE)
+        var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+        guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
+        guiMapping += (runner2.id -> (runner2.position.x, runner2.position.y, runner2.radius, runner2.color))
+        continuousEnvCell.runners = Seq(runner1, runner2).toArray
+        continuousEnvCell.coordinates = guiMapping
+      }
+      if (gridMultiCellId.x == 120 && gridMultiCellId.y == 12) {
+        val runner1: Runner = Runner.createNew(Vec2(15, 15), 17, 16.0, Color.MAGENTA)
+        val runner2: Runner = Runner.createNew(Vec2(45, 65), 15, 19.0, Color.LIGHT_GRAY)
+        var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+        guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
+        guiMapping += (runner2.id -> (runner2.position.x, runner2.position.y, runner2.radius, runner2.color))
+        continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
 
