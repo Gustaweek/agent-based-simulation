@@ -134,7 +134,7 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
     private val emptyColor = new swing.Color(255, 255, 255)
     private val img = new BufferedImage(xSize * guiCellSize, ySize * guiCellSize, BufferedImage.TYPE_INT_ARGB)
 
-    private var lastStepCoords: List[(Int, Int, Int)] = List.empty
+    private var lastStepCoords: List[(Int, Int, Int, Color)] = List.empty
 
     private def defaultColor: CellState => Color =
       state => state.contents match {
@@ -153,8 +153,10 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
     def set(cells: Set[Cell]): Unit = {
       if (lastStepCoords.nonEmpty) {
         val graphics: Graphics = img.getGraphics
-        graphics.setColor(Color.WHITE)
-        lastStepCoords.foreach(coords => graphics.fillOval(coords._1, coords._2, coords._3, coords._3))
+        lastStepCoords.foreach(coords => {
+          graphics.setColor(coords._4)
+          graphics.fillOval(coords._1, coords._2, coords._3, coords._3)
+        })
         lastStepCoords = List.empty
       }
       cells.foreach {
@@ -192,7 +194,7 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
     private def drawAgent(graphics: Graphics, x: Double, y: Double, r: Double, color: Color): Unit = {
       graphics.setColor(color)
       graphics.fillOval((x - r).toInt, (y - r).toInt, (r * 2).toInt, (r * 2).toInt)
-      lastStepCoords = lastStepCoords :+ ((x - r).toInt, (y - r).toInt, (r * 2).toInt)
+      lastStepCoords = lastStepCoords :+ ((x - r).toInt, (y - r).toInt, (r * 2).toInt, color.darker())
     }
 
     private def drawObstacles(graphics: Graphics): Unit = {
@@ -226,7 +228,9 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
       val startX = (x - xOffset) * guiCellSize
       val startY = (y - yOffset) * guiCellSize
       val color: Color = cellToColor.applyOrElse(state, defaultColor)
-      img.setRGB(startX, startY, guiCellSize, guiCellSize, Array.fill(guiCellSize * guiCellSize)(color.getRGB), 0, guiCellSize)
+      if (color.equals(Color.BLUE)) {
+        img.setRGB(startX, startY, guiCellSize, guiCellSize, Array.fill(guiCellSize * guiCellSize)(color.getRGB), 0, guiCellSize)
+      }
     }
   }
 
