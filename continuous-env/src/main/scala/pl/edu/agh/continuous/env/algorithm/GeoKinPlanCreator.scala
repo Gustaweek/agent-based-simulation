@@ -561,7 +561,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       runner
     }
     else {
-      val repellingForceBase = obstacleSegments.flatMap(segment => getObstacleDirection(segment, runner.nextStep, 0.1) match {
+      val repellingForceBase = obstacleSegments.flatMap(segment => getObstacleDirection(segment, runner.position + runner.nextStep, 0.1) match {
         case GridDirection.Top => Some(toBottom)
         case GridDirection.Right => Some(toLeft)
         case GridDirection.Bottom => Some(toTop)
@@ -589,7 +589,6 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       .find(intersection => intersection.onLine1 && intersection.onLine2)
       .orNull
 
-    // fixme null ptr exception - probably it was just bad initial agent positioning/config
     if (nearestPoint.pos.x - position.x > 0) {
       GridDirection.Right
     }

@@ -122,8 +122,8 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 8 && gridMultiCellId.y == 11) {
-        val runner1: Runner = Runner.createNew(Vec2(1, 1), 10, 10.0, Color.GREEN)
+      if (gridMultiCellId.x == 9 && gridMultiCellId.y == 10) {
+        val runner1: Runner = Runner.createNew(Vec2(65, 35), 10, 2.0, Color.GREEN)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
         guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
         continuousEnvCell.runners = Seq(runner1).toArray
