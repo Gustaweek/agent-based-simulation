@@ -14,6 +14,7 @@ final case class Runner(id: UUID,
                         position: Vec2,
                         radius: Double,
                         nextStep: Vec2,
+                        speed: Double,
                         var path: List[Vec2],
                         lastMoveCompletion: Option[MoveCompletion],
                         isStuck: Boolean,
@@ -31,7 +32,7 @@ final case class Runner(id: UUID,
 
   def endPosition: Vec2 = position + nextStep
 
-  def maxStepLength(cellSize: Double): Double = cellSize * 0.5 - body.r //this was diameter but should be radius
+  def maxStepLength(cellSize: Double): Double = cellSize * 0.5 - body.r
 
   def lastActualStep: Option[Vec2] = lastMoveCompletion.map(lmc => nextStep * lmc.value)
 
@@ -42,6 +43,7 @@ final case class Runner(id: UUID,
     position + (nextStep * moveCompletion.value),
     radius,
     nextStep,
+    speed,
     path,
     Some(moveCompletion),
     moveCompletion.tag.equals("e"),
@@ -55,18 +57,19 @@ final case class Runner(id: UUID,
     position,
     radius,
     nextStep,
+    speed,
     path,
     lastMoveCompletion,
     isStuck,
     color
   )
 
-  def withNextStep(nextStep: Vec2): Runner = Runner(id, generation, priority, position, radius, nextStep, path, None, isStuck, color)
+  def withNextStep(nextStep: Vec2): Runner = Runner(id, generation, priority, position, radius, nextStep, speed, path, None, isStuck, color)
 
   def withAdjustedPosition(cellSize: Double,
                            direction: Direction): Runner = {
     val newPosition = position.cellBounded(cellSize, false).adjust(direction, false)
-    Runner(id, generation, priority, newPosition, radius, nextStep, path, lastMoveCompletion, isStuck, color)
+    Runner(id, generation, priority, newPosition, radius, nextStep, speed, path, lastMoveCompletion, isStuck, color)
   }
 
   def withIncrementedGeneration(): Runner = Runner(
@@ -76,6 +79,7 @@ final case class Runner(id: UUID,
     position,
     radius,
     nextStep,
+    speed,
     path,
     lastMoveCompletion,
     isStuck,
@@ -84,7 +88,7 @@ final case class Runner(id: UUID,
 
   def normalizePosition(cellSize: Double): (Runner, Option[Direction]) = {
     val (newPosition, maybeDirection) = position.cellBounded(cellSize, false).normalize
-    (Runner(id, generation, priority, newPosition, radius, nextStep, path, lastMoveCompletion, isStuck, color), maybeDirection)
+    (Runner(id, generation, priority, newPosition, radius, nextStep, speed, path, lastMoveCompletion, isStuck, color), maybeDirection)
   }
 
   def inflate(radiusDelta: Double): Runner = Runner(
@@ -94,6 +98,7 @@ final case class Runner(id: UUID,
     position,
     radius + radiusDelta,
     nextStep,
+    speed,
     path,
     lastMoveCompletion,
     isStuck,
@@ -122,6 +127,7 @@ object Runner {
             position: Vec2,
             radius: Double,
             nextStep: Vec2,
+            speed: Double,
             path: List[Vec2],
             lastMoveCompletion: Option[MoveCompletion],
             isStuck: Boolean,
@@ -133,6 +139,7 @@ object Runner {
       position,
       radius,
       nextStep,
+      speed,
       path,
       lastMoveCompletion,
       isStuck = isStuck,
@@ -141,6 +148,7 @@ object Runner {
   def createNew(position: Vec2,
                 radius: Double,
                 nextStep: Vec2,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -149,6 +157,7 @@ object Runner {
       position,
       radius,
       nextStep,
+      speed,
       List.empty,
       None,
       isStuck = false,
@@ -157,6 +166,7 @@ object Runner {
   def createNew(start: Vec2,
                 end: Vec2,
                 radius: Double,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -165,6 +175,7 @@ object Runner {
       start,
       radius,
       end - start,
+      speed,
       List.empty,
       None,
       isStuck = false,
@@ -172,6 +183,7 @@ object Runner {
 
   def createNew(position: Vec2,
                 radius: Double,
+                speed: Double,
                 color: Color): Runner =
     new Runner(
       UUID.random,
@@ -180,12 +192,14 @@ object Runner {
       position,
       radius,
       nextStep = Vec2.zero,
+      speed,
       List.empty,
       None,
       isStuck = false,
       color)
 
   def createNewMock(sweptCircle: SweptCircle,
+                    speed: Double,
                     color: Color): Runner =
     new Runner(
       UUID(0, 0),
@@ -194,6 +208,7 @@ object Runner {
       position = sweptCircle.start,
       radius = sweptCircle.r,
       nextStep = sweptCircle.line.vector,
+      speed,
       List.empty,
       None,
       isStuck = false,

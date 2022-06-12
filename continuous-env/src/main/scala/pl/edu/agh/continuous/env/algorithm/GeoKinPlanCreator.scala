@@ -149,14 +149,13 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
         case _: NoSuchElementException => runner.path = findPath(runner.position, runner.path.last, cell.graph, config.cellSize).toList
           target = findNextStep(runner.path, runner.position, cell, neighbourContents, config.cellSize)
       }
-      val speed = 20.0 //TODO replace with agent speed
       val movementVector = Line(runner.position, target)
-      if (movementVector.length <= speed) {
+      if (movementVector.length <= runner.speed) {
         nextStep = Vec2(movementVector.end.x - movementVector.start.x, movementVector.end.y - movementVector.start.y)
       }
       else {
-        nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * speed,
-          (movementVector.end.y - movementVector.start.y) / movementVector.length * speed)
+        nextStep = Vec2((movementVector.end.x - movementVector.start.x) / movementVector.length * runner.speed,
+          (movementVector.end.y - movementVector.start.y) / movementVector.length * runner.speed)
       }
     }
 

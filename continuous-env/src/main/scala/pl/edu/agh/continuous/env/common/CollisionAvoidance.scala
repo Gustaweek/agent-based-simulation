@@ -70,7 +70,7 @@ object CollisionAvoidance {
     def getMaxMoveCompletionConsideringOtherRunnersBodies(runners: Seq[Runner]): MoveCompletion = {
       try {
         val position = runner.position
-        val normalToStep = runner.nextStep //TODO was normal aka turned 90 degrees
+        val normalToStep = runner.nextStep.normal
         val sidePoint = position + normalToStep
 
         runners
@@ -96,7 +96,7 @@ object CollisionAvoidance {
     def getMaxMoveCompletionConsideringOtherRunnersSweptBodies(runners: Seq[Runner]): MoveCompletion = {
       try {
         val position = runner.position
-        val normalToStep = runner.nextStep //TODO was normal aka turned 90 degrees
+        val normalToStep = runner.nextStep.normal
         val sidePoint = position + normalToStep
 
         runners
@@ -134,7 +134,7 @@ object CollisionAvoidance {
     def getMaxMoveCompletionRespectingInvariantSweptCircle(invariantSweptCircle: SweptCircle): MoveCompletion = {
       try {
         if (invariantSweptCircle.intersects(runner.body)) {
-          val otherRunner = Runner.createNewMock(invariantSweptCircle, runner.color)
+          val otherRunner = Runner.createNewMock(invariantSweptCircle, runner.speed, runner.color)
           val otherRunnerMoveCompletion = otherRunner.getMaxMoveCompletionRespectingCircle(runner.body)
           val otherRunnerMaxMoveCompletionEndPosition = otherRunner.endPosition(otherRunnerMoveCompletion)
           val v = otherRunnerMaxMoveCompletionEndPosition - runner.position
