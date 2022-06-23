@@ -51,7 +51,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 23 && y == 11) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 23 && y == 5) {
         ContinuousEnvCell(config.initialSignal)
       } else {
         ContinuousEnvCell(Signal.zero)
@@ -122,7 +122,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 5) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 6) {
         val runner1: Runner = Runner.createNew(Vec2(35, 15), 10, 23.4, Color.RED)
         val runner2: Runner = Runner.createNew(Vec2(65, 55), 30, 20.3, Color.GREEN)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -131,7 +131,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 11) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 12) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 20.5, Color.YELLOW)
         val runner2: Runner = Runner.createNew(Vec2(65, 35), 25, 23.0, Color.CYAN)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -140,7 +140,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 15) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 16) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 15, 22.9, Color.PINK)
         val runner2: Runner = Runner.createNew(Vec2(65, 35), 22, 22.0, Color.ORANGE)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -149,7 +149,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 13) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 14) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 15, 23.0, Color.DARK_GRAY)
         val runner2: Runner = Runner.createNew(Vec2(65, 35), 22, 21.0, Color.MAGENTA)
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -158,7 +158,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 7) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 8) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 23.1, new Color(20, 143, 150))
         val runner2: Runner = Runner.createNew(Vec2(65, 35), 25, 20.9, new Color(20, 50, 200))
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -167,7 +167,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 9) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 10) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 30, 22.4, new Color(190, 120, 150))
         val runner2: Runner = Runner.createNew(Vec2(65, 65), 28, 20.8, new Color(100, 30, 45))
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -176,7 +176,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
         continuousEnvCell.runners = Seq(runner1, runner2).toArray
         continuousEnvCell.coordinates = guiMapping
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 12) {
+      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 13) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 12, 21.7, new Color(190, 255, 150))
         val runner2: Runner = Runner.createNew(Vec2(65, 65), 13, 22.3, new Color(80, 165, 165))
         var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
@@ -253,7 +253,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
 
   private def mapObstaclesToPathGraphVertices(obstacles: Array[Obstacle], cellOutline: CellOutline): Map[Vec2, Set[Vec2]] = {
     val result: MutableMap[Vec2, Set[Vec2]] = MutableMap.empty
-    val graphSegments: Set[Line] = getVoronoiSegments(prepareVoronoiInput(obstacles, cellOutline, 5), cellOutline)
+    val graphSegments: Set[Line] = getVoronoiSegments(prepareVoronoiInput(obstacles, cellOutline, 10), cellOutline)
       .filter(line => !isLineInsideObstacleOrOutline(obstacles, line, cellOutline))
     var vertices: Set[Vec2] = Set.empty
     graphSegments.foreach(line => vertices = vertices ++ Set(line.start, line.end))

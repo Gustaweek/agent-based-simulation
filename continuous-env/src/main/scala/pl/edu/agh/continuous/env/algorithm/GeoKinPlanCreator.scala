@@ -14,6 +14,7 @@ import pl.edu.agh.xinuk.algorithm.{Plan, PlanCreator, Plans, StateUpdate}
 import pl.edu.agh.xinuk.model._
 import pl.edu.agh.xinuk.model.continuous._
 import pl.edu.agh.xinuk.model.grid.GridDirection
+import pl.edu.agh.xinuk.model.grid.GridDirection.{BottomLeft, BottomRight, TopLeft, TopRight}
 
 import java.util.{NoSuchElementException, UUID}
 import scala.collection.mutable.ListBuffer
@@ -177,7 +178,8 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                 cell: ContinuousEnvCell,
                                 neighbourContents: Map[(ContinuousEnvCell, UUID), Direction],
                                 cellSize: Int): Vec2 = {
-    val destination = limitLineToNeighbourObstacles(destinationLine, neighbourContents, cellSize)
+    //val destination = limitLineToNeighbourObstacles(destinationLine, neighbourContents, cellSize)
+    val destination = destinationLine
     var targetSegmentVertice = Vec2.zero
     if (destination.end.x <= cellSize.doubleValue && destination.end.x >= 0.0 &&
       destination.end.y <= cellSize.doubleValue && destination.end.y >= 0.0) {
@@ -220,9 +222,19 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       val potentialTargetSegments = crossedNeighbourSegments(destination, adjustedNeighbourSegments)
       if (potentialTargetSegments.nonEmpty) {
         targetSegment = potentialTargetSegments
-          .minBy(crossedSegment => Line(crossedSegment._2, destination.start).length)
+          .minBy(crossedSegment => Line(crossedSegment._2, destination.end).length)
         //in the line above we search crossed segments for which point of crossing is nearest to the position of agent for whom we adjust destination
         sendToDiagonal = true
+        if (neighbour.graph.nonEmpty) {
+          var point = Vec2.zero
+          if (destinationDir.equals(BottomLeft)) point = Vec2(0, 0)
+          if (destinationDir.equals(BottomRight)) point = Vec2(cellSize, 0)
+          if (destinationDir.equals(TopLeft)) point = Vec2(0, cellSize)
+          if (destinationDir.equals(TopRight)) point = Vec2(cellSize, cellSize)
+          return neighbour.graph
+            .map(graphVertice => graphVertice._1.cellBounded(cellSize, true).adjust(destinationDir, true))
+            .minBy(graphVertice => Line(graphVertice, point).length)
+        }
       }
     }
     if (!sendToDiagonal) {
@@ -232,7 +244,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
     }
 
     if (neighbour.graph.nonEmpty) {
-      neighbour.graph
+      return neighbour.graph
         .map(graphVertice => graphVertice._1.cellBounded(cellSize, true).adjust(destinationDir, true))
         .minBy(graphVertice => Line(graphVertice, targetSegment._2).length)
     }
@@ -551,7 +563,7 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       runner
     }
     else {
-      val repellingForceBase = obstacleSegments.flatMap(segment => getObstacleDirection(segment, runner.nextStep, 0.1) match {
+      val repellingForceBase = obstacleSegments.flatMap(segment => getObstacleDirection(segment, runner.position + runner.nextStep, 0.1) match {
         case GridDirection.Top => Some(toBottom)
         case GridDirection.Right => Some(toLeft)
         case GridDirection.Bottom => Some(toTop)
