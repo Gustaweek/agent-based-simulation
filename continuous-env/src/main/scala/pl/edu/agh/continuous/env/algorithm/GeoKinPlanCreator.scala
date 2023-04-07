@@ -311,10 +311,24 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       .map(cell => (cell._1, cell._1._1.cardinalSegments
         .map(segment => Line(segment._1.start.cellBounded(cellSize, true).adjust(cell._2, true),
           segment._1.end.cellBounded(cellSize, true).adjust(cell._2, true)))))
+
+    val value1 = dirNeighbours.toList
+      .filter(neighbour => {
+        val value = neighbour._2
+        val set = value
+          .toSet
+        val contains = set.
+          contains(segment)
+        contains
+      })
+      .map(_._1)
+    value1.head._1
+    /*
     dirNeighbours
       .filter(neighbour => neighbour._2.toList.contains(segment))
       .keys.head._1
-    /*val dirNeighbours: List[ContinuousEnvCell] = neighbourContents
+
+    val dirNeighbours: List[ContinuousEnvCell] = neighbourContents
       .filter(cell => cell._2.asInstanceOf[GridDirection].isCardinal)
       .map(cell => cell._1._1)
       .toList
