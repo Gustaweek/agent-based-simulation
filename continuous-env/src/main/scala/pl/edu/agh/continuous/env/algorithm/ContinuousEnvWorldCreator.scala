@@ -51,9 +51,9 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 14 && y == 15) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 15 && y == 8) {
         ContinuousEnvCell(config.initialSignal)
-      }  else {
+      } else {
         ContinuousEnvCell(Signal.zero)
       }
 
@@ -122,13 +122,14 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 4 && gridMultiCellId.y == 3) {
-        val runner1: Runner = Runner.createNew(Vec2(10, 10), 10, 23.4, Color.RED)
-        val runner2: Runner = Runner.createNew(Vec2(25, 25), 10, 20.3, Color.GREEN)
-        //addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
-        val runner3: Runner = Runner.createNew(Vec2(80, 40), 10, 23.4, Color.BLUE)
+      if (gridMultiCellId.x == 8 && gridMultiCellId.y == 13) {
+        val runner1: Runner = Runner.createNew(Vec2(10, 10), 10, 10, Color.RED)
+        val runner2: Runner = Runner.createNew(Vec2(80, 40), 10, 10, Color.BLUE)
+        /*val runner2: Runner = Runner.createNew(Vec2(25, 25), 10, 20.3, Color.GREEN)*/
+        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+        /*val runner3: Runner = Runner.createNew(Vec2(80, 40), 10, 23.4, Color.BLUE)
         val runner4: Runner = Runner.createNew(Vec2(80, 80), 10, 20.3, Color.ORANGE)
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2, runner3, runner4)
+        addRunnersToGuiMap(continuousEnvCell, runner1, runner2, runner3, runner4)*/
       }
       /*if (gridMultiCellId.x == 5 && gridMultiCellId.y == 12) {
         val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 20.5, Color.YELLOW)
