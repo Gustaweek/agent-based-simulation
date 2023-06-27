@@ -51,7 +51,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 15 && y == 8) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 15 && y == 7) {
         ContinuousEnvCell(config.initialSignal)
       } else {
         ContinuousEnvCell(Signal.zero)
@@ -765,6 +765,7 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
 
     var verticesToAdd: Array[(Int, Int)] = Array()
     if (lastBoundaryNum < firstBoundaryNum) {
+      println("last ",lastBoundaryNum)
       lastBoundaryNum = lastBoundaryNum + 4
     }
 
@@ -772,6 +773,8 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       for (i <- firstBoundaryNum until lastBoundaryNum) {
         if (cellOutlineVertices(i % 4) != cellSplit(0)) {
           verticesToAdd = verticesToAdd :+ cellOutlineVertices(i % 4)
+          verticesToAdd.foreach(println)
+
         }
       }
     } catch {

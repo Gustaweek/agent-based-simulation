@@ -151,10 +151,39 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
     icon = new ImageIcon(img)
 
     def set(cells: Set[Cell]): Unit = {
+      val graphics: Graphics = img.getGraphics
+      for (cell:Cell <-cells){
+        val signal = cell.state.signalMap
+          .values
+          .toSeq
+          .sortBy(s => -Math.abs(s.value))
+          .collectFirst({ case s: Signal => s.value })
+          .getOrElse(0d)
+        if (signal > 0.75) {
+          ///Color.WHITE
+
+          graphics.setColor(Color.RED)
+
+        } else if (signal > 0.3) {
+          graphics.setColor(Color.GREEN)
+          //Color.GREEN
+        } else if (signal > 0.1) {
+          graphics.setColor(Color.ORANGE)
+          //Color.ORANGE
+        } else if (signal > 0) {
+          graphics.setColor(Color.BLACK)
+          //Color.BLACK
+        } else {
+          graphics.setColor(Color.YELLOW)
+          //Color.WHITE
+        }
+      }
+
       if (lastStepCoords.nonEmpty) {
-        val graphics: Graphics = img.getGraphics
+
         lastStepCoords.foreach(coords => {
           graphics.setColor(coords._4)
+          //println(coords.toString)
           graphics.fillOval(coords._1, coords._2, coords._3, coords._3)
         })
         lastStepCoords = List.empty
