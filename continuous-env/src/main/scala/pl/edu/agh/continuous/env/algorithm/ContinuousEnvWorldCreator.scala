@@ -46,12 +46,11 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     }
 
     val obstacles = bufferObstacles(config.obstacles)
-
     while (cellQueue.nonEmpty) {
       val gridMultiCellId = cellQueue.dequeue()
       val x = gridMultiCellId.x
       val y = gridMultiCellId.y
-      val continuousEnvCell: ContinuousEnvCell = if (x == 15 && y == 7) {
+      val continuousEnvCell: ContinuousEnvCell = if (x == 38 && y == 19) {
         ContinuousEnvCell(config.initialSignal)
       } else {
         ContinuousEnvCell(Signal.zero)
@@ -122,45 +121,89 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
       val gridMultiCellId = finalCellQueue.dequeue()
       val continuousEnvCell: ContinuousEnvCell = worldBuilder(gridMultiCellId).state.contents.asInstanceOf[ContinuousEnvCell]
 
-      if (gridMultiCellId.x == 8 && gridMultiCellId.y == 13) {
-        val runner1: Runner = Runner.createNew(Vec2(10, 10), 10, 10, Color.RED)
-        val runner2: Runner = Runner.createNew(Vec2(80, 40), 10, 10, Color.BLUE)
-        /*val runner2: Runner = Runner.createNew(Vec2(25, 25), 10, 20.3, Color.GREEN)*/
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
-        /*val runner3: Runner = Runner.createNew(Vec2(80, 40), 10, 23.4, Color.BLUE)
-        val runner4: Runner = Runner.createNew(Vec2(80, 80), 10, 20.3, Color.ORANGE)
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2, runner3, runner4)*/
+      if (gridMultiCellId.x == 18 && gridMultiCellId.y == 26) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.RED)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      /*if (gridMultiCellId.x == 5 && gridMultiCellId.y == 12) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 20.5, Color.YELLOW)
-        val runner2: Runner = Runner.createNew(Vec2(65, 35), 25, 23.0, Color.CYAN)
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+
+
+      if (gridMultiCellId.x == 33 && gridMultiCellId.y == 26) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.GRAY)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 16) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 15, 22.9, Color.PINK)
-        val runner2: Runner = Runner.createNew(Vec2(65, 35), 22, 22.0, Color.ORANGE)
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+      if (gridMultiCellId.x == 33 && gridMultiCellId.y == 25) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.BLACK)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 14) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 15, 23.0, Color.DARK_GRAY)
-        val runner2: Runner = Runner.createNew(Vec2(65, 35), 22, 21.0, Color.MAGENTA)
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+      if (gridMultiCellId.x == 33 && gridMultiCellId.y == 22) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.MAGENTA)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 8) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 20, 23.1, new Color(20, 143, 150))
-        val runner2: Runner = Runner.createNew(Vec2(65, 35), 25, 20.9, new Color(20, 50, 200))
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+
+
+      if (gridMultiCellId.x == 29 && gridMultiCellId.y == 22) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 80, Color.BLUE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 10) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 30, 22.4, new Color(190, 120, 150))
-        val runner2: Runner = Runner.createNew(Vec2(65, 65), 28, 20.8, new Color(100, 30, 45))
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
+      if (gridMultiCellId.x == 29 && gridMultiCellId.y == 23) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 80, Color.ORANGE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
       }
-      if (gridMultiCellId.x == 5 && gridMultiCellId.y == 13) {
-        val runner1: Runner = Runner.createNew(Vec2(15, 15), 12, 21.7, new Color(190, 255, 150))
-        val runner2: Runner = Runner.createNew(Vec2(65, 65), 13, 22.3, new Color(80, 165, 165))
-        addRunnersToGuiMap(continuousEnvCell, runner1, runner2)
-      }*/
+      if (gridMultiCellId.x == 29 && gridMultiCellId.y == 24) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 80, Color.GREEN)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 29 && gridMultiCellId.y == 25) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 80, Color.PINK)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+
+      if (gridMultiCellId.x == 30 && gridMultiCellId.y == 32) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.YELLOW)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 30 && gridMultiCellId.y == 35) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.lightGray)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 30 && gridMultiCellId.y == 36) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.ORANGE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 30 && gridMultiCellId.y == 38) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.BLUE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 30 && gridMultiCellId.y == 40) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 1000, Color.RED)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+
+
+      if (gridMultiCellId.x == 34 && gridMultiCellId.y == 38) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 800, Color.BLUE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 34 && gridMultiCellId.y == 39) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 10, Color.YELLOW)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+
+
+      if (gridMultiCellId.x == 38 && gridMultiCellId.y == 34) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 800, Color.ORANGE)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 38 && gridMultiCellId.y == 36) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 800, Color.GREEN)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+      if (gridMultiCellId.x == 38 && gridMultiCellId.y == 38) {
+        val runner1: Runner = Runner.createNew(Vec2(20, 20), 17, 10, Color.YELLOW)
+        addRunnersToGuiMap(continuousEnvCell, runner1)
+      }
+
+
 
       val boundaryObstacles = getBoundaryObstacles(continuousEnvCell)
       val allObstacles = boundaryObstacles ++ continuousEnvCell.obstacles
@@ -199,6 +242,12 @@ object ContinuousEnvWorldCreator extends WorldCreator[ContinuousEnvConfig] {
     worldBuilder
   }
 
+  private def addRunnersToGuiMap(continuousEnvCell: ContinuousEnvCell, runner1: Runner): Unit = {
+    var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
+    guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
+    continuousEnvCell.runners = Seq(runner1).toArray
+    continuousEnvCell.coordinates = guiMapping
+  }
   private def addRunnersToGuiMap(continuousEnvCell: ContinuousEnvCell, runner1: Runner, runner2: Runner): Unit = {
     var guiMapping: Map[UUID, (Double, Double, Double, Color)] = Map.empty
     guiMapping += (runner1.id -> (runner1.position.x, runner1.position.y, runner1.radius, runner1.color))
