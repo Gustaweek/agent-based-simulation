@@ -305,9 +305,13 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
                                   segment: Line,
                                   cellSize: Int): ContinuousEnvCell = {
     /*.map(cell => cell._1._1.cardinalSegments.start.cellBounded(cellSize, true).adjust(destinationDir, true),
-      segment.end.cellBounded(cellSize, true).adjust(destinationDir, true))*/
+      segment.end.cellBounded(cellSize, true).adjust(destinationDir, true))
+
+    .map(cell => (cell._1, cell._1._1.cardinalSegments
+      .map(segment => Line(segment._1.start.cellBounded(cellSize, true).adjust(cell._2, true),
+        segment._1.end.cellBounded(cellSize, true).adjust(cell._2, true)))))
+      */
     val dirNeighbours: Map[(ContinuousEnvCell, UUID), Iterable[Line]] = neighbourContents
-      .filter(cell => cell._2.asInstanceOf[GridDirection].isCardinal)
       .map(cell => (cell._1, cell._1._1.cardinalSegments
         .map(segment => Line(segment._1.start.cellBounded(cellSize, true).adjust(cell._2, true),
           segment._1.end.cellBounded(cellSize, true).adjust(cell._2, true)))))
@@ -324,6 +328,14 @@ final case class GeoKinPlanCreator() extends PlanCreator[ContinuousEnvConfig] {
       .map(_._1)
     value1.head._1
     /*
+    if (value1.nonEmpty){
+      value1.head._1
+
+    } else {
+      dirNeighbours
+        .keys.head._1
+    }
+
     dirNeighbours
       .filter(neighbour => neighbour._2.toList.contains(segment))
       .keys.head._1
