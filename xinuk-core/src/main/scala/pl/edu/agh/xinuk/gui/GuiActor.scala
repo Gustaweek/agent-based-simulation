@@ -228,6 +228,7 @@ private[gui] class GuiGrid(worldSpan: ((Int, Int), (Int, Int)), cellToColor: Par
       val startX = (x - xOffset) * guiCellSize
       val startY = (y - yOffset) * guiCellSize
       val color: Color = cellToColor.applyOrElse(state, defaultColor)
+      //TODO WYWALIC IF'a jak cos
       if (color.equals(Color.BLUE)) {
         img.setRGB(startX, startY, guiCellSize, guiCellSize, Array.fill(guiCellSize * guiCellSize)(color.getRGB), 0, guiCellSize)
       }
